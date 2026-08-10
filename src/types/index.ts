@@ -62,7 +62,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "customer" | "admin";
+  phone?: string | null;
+  emailVerified: boolean;
+  // Backend returns this uppercase (Prisma Role enum) — matches the
+  // same reality the NextAuth session.role normalizes to lowercase,
+  // but /users/me itself is untouched, so this type should reflect
+  // what actually comes back over the wire.
+  role: "CUSTOMER" | "ADMIN";
 }
 
 // Matches the Express API's addresses schema exactly (POST/PATCH
@@ -115,6 +121,18 @@ export type OrderStatus = "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "
 // NOTE: the Postman collection's [Admin] Update Order Status example
 // body uses "SHIPPED" (uppercase) — see OrderStatus above for the
 // locked set PATCH /admin/orders/:id/status actually accepts.
+// Response shape for POST /orders specifically — NOT the same as Order
+// above, which is what GET /orders/:id returns (the raw Prisma row,
+// keyed by `id`). The create-order service (order.service.ts) returns
+// a completely different shape: it creates the Stripe PaymentIntent
+// inline as part of order creation and hands back its clientSecret
+// directly, keyed by `orderId` (not `id`).
+export interface CreateOrderResult {
+  orderId: string;
+  clientSecret: string | null;
+  totalAmount: number;
+}
+
 export interface Order {
   id: string;
   userId: string;

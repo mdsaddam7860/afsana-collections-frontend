@@ -1,4 +1,4 @@
-import type { Address, Discount, Order, OrderAddress, PaymentStatus, Product, Review, User } from "@/types";
+import type { Address, CreateOrderResult, Discount, Order, OrderAddress, PaymentStatus, Product, Review, User } from "@/types";
 import { apiFetch } from "@/lib/http";
 
 // Every page/component imports from here, never from a DB client or
@@ -149,7 +149,7 @@ export async function getCurrentUser(accessToken: string): Promise<User | null> 
 }
 
 export async function updateCurrentUser(
-  updates: Partial<Pick<User, "name" | "email">>,
+  updates: Partial<Pick<User, "name" | "email" | "phone">>,
   accessToken: string
 ): Promise<User> {
   const raw = await apiFetch<unknown>("/users/me", {
@@ -158,6 +158,21 @@ export async function updateCurrentUser(
     accessToken,
   });
   return unwrapObject<User>(raw);
+}
+
+// POST /auth/verify-email — public, no accessToken needed (see
+// auth.routes.ts: not behind requireAuth). Confirms the 6-digit OTP
+// emailed at registration.
+//
+// NOTE: there is currently no backend endpoint to RESEND that OTP —
+// only POST /auth/register sends one, and it's a one-time send valid
+// for 15 minutes. If it expires before the user verifies, there is no
+// way for them to get a new code short of a backend fix.
+export async function verifyEmailOtp(email: string, otp: string): Promise<void> {
+  await apiFetch<unknown>("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
 }
 
 export async function listAddresses(accessToken: string): Promise<Address[]> {
@@ -191,13 +206,13 @@ interface CreateOrderPayload {
 export async function createOrder(
   payload: CreateOrderPayload,
   accessToken: string
-): Promise<Order> {
+): Promise<CreateOrderResult> {
   const raw = await apiFetch<unknown>("/orders", {
     method: "POST",
     body: JSON.stringify(payload),
     accessToken,
   });
-  return unwrapObject<Order>(raw);
+  return unwrapObject<CreateOrderResult>(raw);
 }
 
 export async function updateAddress(

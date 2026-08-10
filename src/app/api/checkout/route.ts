@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { createOrder, createPaymentIntent } from "@/lib/api";
+import { createOrder, createPaymentIntent, getCurrentUser } from "@/lib/api";
 import { syncCartToBackend } from "@/lib/cart-api";
 import { CHECKOUT_DEFAULTS } from "@/lib/constants";
 import type { CartLine, OrderAddress } from "@/types";
@@ -68,6 +68,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    // The backend itself does NOT reject order creation for an
+    // unverified email — POST /orders has no such check (see
+    // order.routes.ts / order.service.ts). Enforcing it only here is
+    // a soft, client-side-reachable gate: someone could still call the
+    // backend directly and bypass it. Flagged to the backend team to
+    // add the same check server-side for real enforcement.
+    const currentUser = await getCurrentUser(accessToken);
+    if (currentUser && !currentUser.emailVerified) {
+      return NextResponse.json(
+        { error: "Please verify your email before placing an order." },
+        { status: 403 }
+      );
+    }
+
     await syncCartToBackend(items, accessToken);
 
     const order = await createOrder(
@@ -80,9 +94,18 @@ export async function POST(request: Request) {
       accessToken
     );
 
-    const { clientSecret } = await createPaymentIntent(order.id, accessToken);
+    // POST /orders already creates the Stripe PaymentIntent inline and
+    // returns its clientSecret directly — /payments/create-intent is
+    // only a retry path for the rare case that inline creation failed
+    // (clientSecret comes back null). Calling it unconditionally was
+    // the actual bug: order.id doesn't exist on this response (the
+    // real field is order.orderId), so `orderId: order.id` silently
+    // serialized to `orderId: undefined`, which JSON.stringify drops
+    // entirely — the backend then saw a request with no orderId at all.
+    const clientSecret =
+      order.clientSecret ?? (await createPaymentIntent(order.orderId, accessToken)).clientSecret;
 
-    return NextResponse.json({ clientSecret, orderId: order.id });
+    return NextResponse.json({ clientSecret, orderId: order.orderId });
   } catch (err) {
     // apiFetch throws a plain Error with the backend's status/body baked
     // into the message — surface that rather than a generic 500 so
