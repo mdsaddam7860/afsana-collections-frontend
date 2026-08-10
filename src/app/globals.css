@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   THEME: "Nocturne" — boutique-at-night
+   Deep plum-black base, one molten-copper accent.
+   ============================================ */
+
+:root {
+  /* Base atmosphere */
+  --background: 315 18% 7%;        /* #150F13 — warm near-black */
+  --surface: 315 14% 12%;          /* #211820 — card/panel surface */
+  --surface-raised: 315 12% 16%;   /* #2C222B — elevated panel */
+  --foreground: 30 28% 92%;        /* #F2E9E4 — warm ivory text */
+  --muted: 300 8% 62%;             /* #A8A0A5 — secondary text */
+  --border: 315 10% 22%;           /* hairline on dark */
+
+  /* The one accent — molten copper */
+  --accent: 24 78% 56%;            /* #E0793C */
+  --accent-foreground: 315 18% 7%;
+
+  /* Sparing secondary tint (variant swatches / backdrops only) */
+  --clay: 14 38% 38%;
+
+  --shadow: 315 40% 3%;
+
+  --radius-sharp: 0px;
+  --radius-soft: 6px;
+  --radius-pill: 999px;
+}
+
+/* ============================================
+   THEME: "Linen" — warm off-white, airy
+   ============================================ */
+[data-theme="linen"] {
+  --background: 36 32% 96%;        /* #F8F3EC */
+  --surface: 36 28% 91%;           /* #EFE6D8 */
+  --surface-raised: 36 24% 86%;    /* #E5D9C6 */
+  --foreground: 20 22% 16%;        /* #2E2620 */
+  --muted: 24 10% 42%;             /* #78706A */
+  --border: 30 18% 80%;
+
+  --accent: 24 78% 46%;            /* deeper copper for contrast on light bg */
+  --accent-foreground: 36 32% 96%;
+
+  --clay: 14 38% 58%;
+  --shadow: 30 20% 60%;
+}
+
+/* ============================================
+   THEME: "Clay" — terracotta + cream, daylight
+   ============================================ */
+[data-theme="clay"] {
+  --background: 28 42% 93%;        /* #F5E7DA */
+  --surface: 20 40% 88%;           /* #EDD5C1 */
+  --surface-raised: 18 38% 82%;    /* #E3C1A6 */
+  --foreground: 12 32% 20%;        /* #3B2A22 */
+  --muted: 16 16% 42%;             /* #7A6157 */
+  --border: 18 30% 74%;
+
+  --accent: 8 62% 48%;             /* terracotta red */
+  --accent-foreground: 28 42% 93%;
+
+  --clay: 14 45% 45%;
+  --shadow: 18 30% 55%;
+}
+
+@font-face {
+  font-family: "Canela Deck";
+  src: local("Canela Deck");
+  font-display: swap;
+}
+
+html {
+  background: hsl(var(--background));
+  color-scheme: dark;
+}
+
+html[data-theme="linen"],
+html[data-theme="clay"] {
+  color-scheme: light;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body), "Archivo", sans-serif;
+  font-feature-settings: "ss01" on, "case" on;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), "Fraunces", serif;
+  letter-spacing: -0.01em;
+}
+
+.font-mono-price {
+  font-family: var(--font-mono), "JetBrains Mono", monospace;
+  font-feature-settings: "tnum" on;
+}
+
+/* Fluid type scale — dramatic on desktop, contained on mobile */
+.text-fluid-hero {
+  font-size: clamp(2.75rem, 4vw + 1.5rem, 7rem);
+  line-height: 0.95;
+}
+.text-fluid-h1 {
+  font-size: clamp(2rem, 2.4vw + 1rem, 3.5rem);
+  line-height: 1.02;
+}
+.text-fluid-h2 {
+  font-size: clamp(1.5rem, 1.4vw + 1rem, 2.25rem);
+  line-height: 1.05;
+}
+.text-fluid-body {
+  font-size: clamp(0.9375rem, 0.3vw + 0.85rem, 1.0625rem);
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Grain texture overlay — applied once at hero/atmosphere level */
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Mesh gradient atmosphere for hero */
+.mesh-atmosphere {
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 20%, hsl(var(--accent) / 0.28), transparent 60%),
+    radial-gradient(ellipse 50% 60% at 85% 75%, hsl(var(--clay) / 0.35), transparent 65%),
+    hsl(var(--background));
+  background-size: 200% 200%;
+  animation: mesh-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-drift {
+  0% { background-position: 0% 0%, 100% 100%; }
+  100% { background-position: 20% 15%, 80% 85%; }
+}
+
+/* Masked line reveal for hero headline */
+.reveal-mask {
+  overflow: hidden;
+  display: block;
+}
+.reveal-line {
+  display: block;
+  transform: translateY(110%);
+  animation: reveal-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes reveal-up {
+  to { transform: translateY(0); }
+}
+
+/* Staggered grid entrance */
+.stagger-in {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: stagger-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes stagger-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cinematic image zoom on hover */
+.img-zoom {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .img-zoom {
+  transform: scale(1.05);
+}
+
+/* Cart badge pulse */
+@keyframes badge-pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.badge-pulse {
+  animation: badge-pulse 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Magnetic / fill-from-center button */
+.btn-fill {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+.btn-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--accent));
+  border-radius: inherit;
+  transform: scale(0);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+}
+.btn-fill:hover::before {
+  transform: scale(1);
+}
+
+/* Frosted glass for drawers/modals */
+.glass-panel {
+  background: hsl(var(--surface) / 0.75);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid hsl(var(--border) / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .mesh-atmosphere { animation: none; }
+}
