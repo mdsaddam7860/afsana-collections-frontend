@@ -7,7 +7,7 @@ const config: Config = {
     "./src/components/**/*.{ts,tsx}",
   ],
   theme: {
-    extend: themeExtension.extend,
+    extend: themeExtension?.extend || {},
   },
   plugins: [],
 };
