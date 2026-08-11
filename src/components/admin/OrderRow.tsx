@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Order } from "@/types";
 import { formatPrice } from "@/lib/currency";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/store/toast-store";
 
 // PATCH /admin/orders/:id/status only accepts these three — cancel and
 // return go through their own dedicated endpoints, never through this
@@ -22,6 +24,7 @@ export default function OrderRow({ order }: { order: Order }) {
   const [saving, setSaving] = useState(false);
   const [returnStatus, setReturnStatus] = useState(order.returnStatus ?? null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmingReject, setConfirmingReject] = useState(false);
 
   const handleChange = async (next: string) => {
     setStatus(next);
@@ -55,18 +58,21 @@ export default function OrderRow({ order }: { order: Order }) {
   };
 
   const handleRejectReturn = async () => {
-    if (!confirm("Reject this return request?")) return;
     setSaving(true);
     setActionError(null);
     const res = await fetch(`/api/admin/orders/${order.id}/reject-return`, {
       method: "POST",
     }).catch(() => null);
     setSaving(false);
+    setConfirmingReject(false);
     if (res?.ok) {
       setReturnStatus("REJECTED");
+      toast.success("Return rejected.");
     } else {
       const body = await res?.json().catch(() => ({}));
-      setActionError(body?.error || "Couldn't reject the return.");
+      const message = body?.error || "Couldn't reject the return.";
+      setActionError(message);
+      toast.error(message);
     }
   };
 
@@ -79,10 +85,10 @@ export default function OrderRow({ order }: { order: Order }) {
         {new Date(order.createdAt).toLocaleDateString()}
       </td>
       <td className="px-5 py-4 text-sm text-foreground">
-        {order.lines.reduce((n, l) => n + l.quantity, 0)} items
+        {order.items.reduce((n, item) => n + item.quantity, 0)} items
       </td>
       <td className="px-5 py-4 font-mono-price text-sm text-foreground">
-        {formatPrice(order.subtotal)}
+        {formatPrice(order.totalAmount)}
       </td>
       <td className="px-5 py-4">
         <select
@@ -120,7 +126,7 @@ export default function OrderRow({ order }: { order: Order }) {
                 Approve
               </button>
               <button
-                onClick={handleRejectReturn}
+                onClick={() => setConfirmingReject(true)}
                 disabled={saving}
                 className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
               >
@@ -134,10 +140,23 @@ export default function OrderRow({ order }: { order: Order }) {
           </span>
         ) : null}
         {actionError && (
-          <p role="alert" className="mt-1 font-mono-price text-[10px] text-accent">
+          <p
+            role="alert"
+            className="mt-1 font-mono-price text-[10px] text-accent"
+          >
             {actionError}
           </p>
         )}
+        <ConfirmDialog
+          open={confirmingReject}
+          title="Reject this return request?"
+          description="The customer will be notified their return wasn't approved."
+          confirmLabel="Reject return"
+          cancelLabel="Never mind"
+          busy={saving}
+          onConfirm={handleRejectReturn}
+          onCancel={() => setConfirmingReject(false)}
+        />
       </td>
     </tr>
   );

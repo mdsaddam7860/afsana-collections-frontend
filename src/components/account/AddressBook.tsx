@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Address } from "@/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/store/toast-store";
 
 const EMPTY_FORM: Omit<Address, "id"> = {
   type: "SHIPPING",
@@ -21,6 +23,9 @@ export default function AddressBook() {
   const [addresses, setAddresses] = useState<Address[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Address | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<
+    string | undefined
+  >(undefined);
   const [form, setForm] = useState<Omit<Address, "id">>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +87,9 @@ export default function AddressBook() {
 
     try {
       const res = await fetch(
-        editing ? `/api/account/addresses/${editing.id}` : "/api/account/addresses",
+        editing
+          ? `/api/account/addresses/${editing.id}`
+          : "/api/account/addresses",
         {
           method: editing ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -102,10 +109,17 @@ export default function AddressBook() {
     }
   };
 
-  const handleDelete = async (id?: string) => {
-    if (!id) return;
-    if (!confirm("Delete this address?")) return;
-    await fetch(`/api/account/addresses/${id}`, { method: "DELETE" }).catch(() => null);
+  const handleDelete = async () => {
+    if (!confirmingDeleteId) return;
+    const res = await fetch(`/api/account/addresses/${confirmingDeleteId}`, {
+      method: "DELETE",
+    }).catch(() => null);
+    setConfirmingDeleteId(undefined);
+    if (!res?.ok) {
+      toast.error("Couldn't delete this address.");
+      return;
+    }
+    toast.success("Address deleted.");
     load();
   };
 
@@ -147,11 +161,14 @@ export default function AddressBook() {
               {address.label && (
                 <p className="mt-2 text-sm text-foreground">{address.label}</p>
               )}
-              <p className="mt-1 text-sm text-foreground">{address.fullName || "—"}</p>
+              <p className="mt-1 text-sm text-foreground">
+                {address.fullName || "—"}
+              </p>
               <p className="mt-1 text-sm text-muted">
                 {address.street}
-                {address.addressLine2 ? `, ${address.addressLine2}` : ""}, {address.city},{" "}
-                {address.state} {address.postalCode}, {address.country}
+                {address.addressLine2 ? `, ${address.addressLine2}` : ""},{" "}
+                {address.city}, {address.state} {address.postalCode},{" "}
+                {address.country}
               </p>
               {address.phone && (
                 <p className="mt-1 text-xs text-muted">{address.phone}</p>
@@ -169,7 +186,7 @@ export default function AddressBook() {
                   Edit
                 </button>
                 <button
-                  onClick={() => handleDelete(address.id)}
+                  onClick={() => setConfirmingDeleteId(address.id)}
                   className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent"
                 >
                   Delete
@@ -192,49 +209,68 @@ export default function AddressBook() {
                 <select
                   value={form.type}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, type: e.target.value as Address["type"] }))
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as Address["type"],
+                    }))
                   }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 >
-                  <option value="SHIPPING" className="bg-surface">Shipping</option>
-                  <option value="BILLING" className="bg-surface">Billing</option>
+                  <option value="SHIPPING" className="bg-surface">
+                    Shipping
+                  </option>
+                  <option value="BILLING" className="bg-surface">
+                    Billing
+                  </option>
                 </select>
                 <input
                   placeholder="Label (e.g. Home)"
                   value={form.label ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, label: e.target.value }))
+                  }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
               </div>
               <input
                 placeholder="Full name"
                 value={form.fullName}
-                onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, fullName: e.target.value }))
+                }
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
               />
               <input
                 placeholder="Street"
                 value={form.street}
-                onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, street: e.target.value }))
+                }
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
               />
               <input
                 placeholder="Apartment, suite, etc. (optional)"
                 value={form.addressLine2 ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, addressLine2: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, addressLine2: e.target.value }))
+                }
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
                   placeholder="City"
                   value={form.city}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, city: e.target.value }))
+                  }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
                 <input
                   placeholder="State"
                   value={form.state}
-                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, state: e.target.value }))
+                  }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
               </div>
@@ -242,7 +278,9 @@ export default function AddressBook() {
                 <input
                   placeholder="Postal code"
                   value={form.postalCode}
-                  onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, postalCode: e.target.value }))
+                  }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
                 <input
@@ -250,7 +288,10 @@ export default function AddressBook() {
                   value={form.country}
                   maxLength={2}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, country: e.target.value.toUpperCase() }))
+                    setForm((f) => ({
+                      ...f,
+                      country: e.target.value.toUpperCase(),
+                    }))
                   }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
@@ -258,21 +299,28 @@ export default function AddressBook() {
               <input
                 placeholder="Phone (required)"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
               />
               <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="checkbox"
                   checked={form.isDefault}
-                  onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isDefault: e.target.checked }))
+                  }
                 />
                 Set as default
               </label>
             </div>
 
             {error && (
-              <p role="alert" className="mt-3 font-mono-price text-xs text-accent">
+              <p
+                role="alert"
+                className="mt-3 font-mono-price text-xs text-accent"
+              >
                 {error}
               </p>
             )}
@@ -295,6 +343,14 @@ export default function AddressBook() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmingDeleteId}
+        title="Delete this address?"
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmingDeleteId(undefined)}
+      />
     </div>
   );
 }

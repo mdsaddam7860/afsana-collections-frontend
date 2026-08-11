@@ -2,12 +2,82 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { loginWithCredentials } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/config";
 
-// Role AND the backend's own accessToken live on the NextAuth token/session.
-// next-auth still owns the browser-facing session cookie (so we keep its
-// CSRF handling, /api/auth routes, middleware.ts integration, etc.) but the
-// actual auth decision — and the JWT used to call the Express API — comes
-// from the backend's POST /auth/login, not from NextAuth itself.
+// Helper function to call your Express backend's refresh endpoint
+// async function refreshAccessToken(token: any) {
+//   try {
+//     // Replace with your actual backend API URL
+//     const baseUrl = API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+//     const response = await fetch(`${baseUrl}/auth/refresh`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ refreshToken: token.refreshToken }),
+//     });
+
+//     const refreshedTokens = await response.json();
+
+//     if (!response.ok) {
+//       throw refreshedTokens;
+//     }
+
+//     return {
+//       ...token,
+//       accessToken: refreshedTokens.accessToken,
+//       accessTokenExpires: Date.now() + 15 * 60 * 1000, // Reset to 15 minutes from now
+//       // Fall back to old refresh token if the backend doesn't return a new one
+//       refreshToken: refreshedTokens.refreshToken ?? token.refreshToken,
+//     };
+//   } catch (error) {
+//     console.error("Error refreshing access token", error);
+//     return {
+//       ...token,
+//       error: "RefreshAccessTokenError", // We will use this in the frontend to force a logout
+//     };
+//   }
+// }
+async function refreshAccessToken(token: any) {
+  try {
+    console.log("Attempting to refresh token...");
+
+    // Double check that API_BASE_URL includes '/api' if your backend requires it
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: token.refreshToken }),
+    });
+
+    // Safely parse the response to prevent 502 crashes
+    const textResponse = await response.text();
+    let refreshedTokens;
+
+    try {
+      refreshedTokens = JSON.parse(textResponse);
+    } catch (parseError) {
+      console.error("❌ Backend did not return JSON. Raw response:", textResponse);
+      throw new Error("Invalid response from refresh endpoint");
+    }
+
+    if (!response.ok) {
+      console.error("❌ Backend rejected refresh token:", refreshedTokens);
+      throw refreshedTokens;
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.accessToken,
+      accessTokenExpires: Date.now() + 15 * 60 * 1000,
+      refreshToken: refreshedTokens.refreshToken ?? token.refreshToken,
+    };
+  } catch (error) {
+    console.error("❌ Refresh logic failed:", error);
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -27,9 +97,7 @@ export const authOptions: NextAuthOptions = {
           credentials.password
         );
         if (!result) return null;
-        // Shape returned here becomes the `user` param in the jwt()
-        // callback below — smuggle the backend tokens through it since
-        // NextAuth's User type doesn't have a dedicated slot for them.
+
         return {
           id: result.user.id,
           name: result.user.name,
@@ -44,6 +112,7 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   callbacks: {
     jwt: async ({ token, user }) => {
+      // 1. Initial sign in
       if (user) {
         const u = user as unknown as {
           role?: string;
@@ -55,23 +124,35 @@ export const authOptions: NextAuthOptions = {
         token.id = u.id;
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
-        // NOTE: this does not yet refresh an expired accessToken using
-        // POST /auth/refresh — for a short-lived JWT (e.g. 15 min), add
-        // an expiry check here and call refreshToken before it lapses,
-        // or admin/account pages will start getting 401s from the API
-        // mid-session.
+
+        // Add expiration time (15 minutes from now)
+        token.accessTokenExpires = Date.now() + 15 * 60 * 1000;
+
+        return token;
       }
-      return token;
+
+      // 2. Subsequent use: Return the token if it has NOT expired yet.
+      // We subtract 1 minute (60000ms) as a buffer so we refresh just before it dies.
+      if (Date.now() < (token.accessTokenExpires as number) - 60000) {
+        return token;
+      }
+
+      // 3. Token has expired, try to refresh it
+      return await refreshAccessToken(token);
     },
+
     session: async ({ session, token }) => {
       if (session.user) {
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { id?: string }).id = token.id as string;
       }
-      // Exposed so Server Components/Route Handlers can read
-      // session.accessToken and pass it into apiFetch(path, { accessToken }).
-      (session as unknown as { accessToken?: string }).accessToken =
-        token.accessToken as string | undefined;
+
+      // Pass tokens to the frontend/server components
+      (session as unknown as { accessToken?: string }).accessToken = token.accessToken as string | undefined;
+
+      // Pass the error to the client so it knows if the refresh failed (e.g., refresh token expired)
+      (session as unknown as { error?: string }).error = token.error as string | undefined;
+
       return session;
     },
   },

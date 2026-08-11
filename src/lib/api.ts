@@ -177,6 +177,32 @@ export async function verifyEmailOtp(email: string, otp: string): Promise<void> 
   });
 }
 
+// POST /auth/resend-verification — now implemented on the backend.
+export async function resendVerificationOtp(email: string): Promise<void> {
+  await apiFetch<unknown>("/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+// POST /auth/phone/send-otp — requireAuth, uses the signed-in user's
+// phone number already on file.
+export async function sendPhoneOtp(accessToken: string): Promise<void> {
+  await apiFetch<unknown>("/auth/phone/send-otp", {
+    method: "POST",
+    accessToken,
+  });
+}
+
+// POST /auth/phone/verify-otp — requireAuth.
+export async function verifyPhoneOtp(otp: string, accessToken: string): Promise<void> {
+  await apiFetch<unknown>("/auth/phone/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+    accessToken,
+  });
+}
+
 export async function listAddresses(accessToken: string): Promise<Address[]> {
   const raw = await apiFetch<unknown>("/users/me/addresses", { accessToken });
   return unwrapList<Address>(raw);

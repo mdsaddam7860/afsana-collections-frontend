@@ -40,7 +40,6 @@ export interface Product {
   slug: string;
   name: string;
   description: string | null;
-  price: number;
   basePrice: string; // decimal string, e.g. "18.00"
   status: ProductStatus;
   images: string[];
@@ -65,6 +64,7 @@ export interface User {
   email: string;
   phone?: string | null;
   emailVerified: boolean;
+  phoneVerified: boolean;
   // Backend returns this uppercase (Prisma Role enum) — matches the
   // same reality the NextAuth session.role normalizes to lowercase,
   // but /users/me itself is untouched, so this type should reflect
@@ -134,25 +134,71 @@ export interface CreateOrderResult {
   totalAmount: number;
 }
 
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  variantId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  unitPrice: number;
+  quantity: number;
+  totalPrice: number;
+  createdAt: string;
+}
+
+export interface OrderShippingAddress {
+  fullName: string;
+  phone: string;
+  street: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+// Matches GET /orders's real response exactly (order.routes.ts returns
+// the raw Prisma row + items) — was previously modeled after a fake
+// `lines: CartLine[]` shape that doesn't exist on this backend at all,
+// which crashed OrderCard.tsx's render (order.lines was always
+// undefined) and surfaced as the account page's generic error boundary
+// despite the API call succeeding.
 export interface Order {
   id: string;
   userId: string;
-  lines: CartLine[];
-  subtotal: number;
   status: string;
+  totalAmount: number;
+  subtotal: number;
+  taxAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
+  currency: string;
+  shippingAddress: OrderShippingAddress;
+  billingAddress: OrderShippingAddress;
+  stripePaymentIntentId?: string | null;
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
   // REQUESTED/APPROVED/REJECTED/null — a separate field from `status`.
   // A DELIVERED order with returnStatus "REQUESTED" is still
   // "DELIVERED"; the return is tracked independently until an admin
   // approves or rejects it.
   returnStatus?: "REQUESTED" | "APPROVED" | "REJECTED" | null;
+  returnReason?: string | null;
+  items: OrderItem[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Discount {
   id: string;
   code: string;
   type: "PERCENTAGE" | "FIXED_AMOUNT";
-  value: number;
+  // Prisma Decimal(10,2) — arrives as a string over JSON (e.g. "10.00"),
+  // same reasoning as Product.basePrice and Variant.priceAdjustment.
+  value: string;
   minOrderAmount?: number;
   maxDiscountAmount?: number;
   usageLimitGlobal?: number;

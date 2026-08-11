@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Discount } from "@/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/store/toast-store";
 
 const EMPTY_FORM = {
   code: "",
@@ -47,7 +49,7 @@ export default function DiscountsPanel({
     setForm({
       code: d.code,
       type: d.type,
-      value: d.value,
+      value: Number(d.value),
       minOrderAmount: d.minOrderAmount ?? 0,
       maxDiscountAmount: d.maxDiscountAmount ?? 0,
       usageLimitGlobal: d.usageLimitGlobal ?? 0,
@@ -106,11 +108,24 @@ export default function DiscountsPanel({
     }
   };
 
-  const handleDeactivate = async (id: string) => {
-    if (!confirm("Deactivate this discount code?")) return;
-    await fetch(`/api/admin/discounts/${id}`, { method: "DELETE" }).catch(
-      () => null
-    );
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState<
+    string | null
+  >(null);
+  const [deactivating, setDeactivating] = useState(false);
+
+  const handleDeactivate = async () => {
+    if (!confirmingDeactivate) return;
+    setDeactivating(true);
+    const res = await fetch(`/api/admin/discounts/${confirmingDeactivate}`, {
+      method: "DELETE",
+    }).catch(() => null);
+    setDeactivating(false);
+    setConfirmingDeactivate(null);
+    if (!res?.ok) {
+      toast.error("Couldn't deactivate this code.");
+      return;
+    }
+    toast.success("Discount deactivated.");
     reload();
   };
 
@@ -169,7 +184,7 @@ export default function DiscountsPanel({
                     </button>
                     {d.isActive && (
                       <button
-                        onClick={() => handleDeactivate(d.id)}
+                        onClick={() => setConfirmingDeactivate(d.id)}
                         className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent"
                       >
                         Deactivate
@@ -363,6 +378,15 @@ export default function DiscountsPanel({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmingDeactivate}
+        title="Deactivate this discount code?"
+        confirmLabel="Deactivate"
+        busy={deactivating}
+        onConfirm={handleDeactivate}
+        onCancel={() => setConfirmingDeactivate(null)}
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import type { Order } from "@/types";
 import { formatPrice } from "@/lib/currency";
-import { cldUrl } from "@/lib/cloudinary";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/store/toast-store";
 
 // Status labels — backend uses uppercase values (see OrderStatus in
 // src/types/index.ts): PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED.
@@ -39,20 +39,26 @@ export default function OrderCard({
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnReason, setReturnReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const status = order.status.toUpperCase();
 
   const handleCancel = async () => {
-    if (!confirm("Cancel this order?")) return;
     setBusy(true);
     setActionError(null);
-    const res = await fetch(`/api/orders/${order.id}/cancel`, { method: "POST" });
+    const res = await fetch(`/api/orders/${order.id}/cancel`, {
+      method: "POST",
+    });
     setBusy(false);
+    setConfirmingCancel(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setActionError(body.error || "Couldn't cancel this order.");
+      const message = body.error || "Couldn't cancel this order.";
+      setActionError(message);
+      toast.error(message);
       return;
     }
+    toast.success("Order cancelled.");
     onChange?.();
   };
 
@@ -101,26 +107,52 @@ export default function OrderCard({
       </div>
 
       <ul className="mt-4 space-y-3">
-        {order.lines.map((line) => (
-          <li key={line.variantId} className="flex items-center gap-3">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-soft bg-surface-raised">
-              <Image src={cldUrl(line.image)} alt={line.name} fill sizes="48px" className="object-cover" />
-            </div>
-            <div className="flex flex-1 items-baseline justify-between text-sm">
-              <span className="text-foreground">
-                {line.name} <span className="text-muted">× {line.quantity}</span>
-              </span>
-              <span className="font-mono-price text-xs text-muted">
-                {formatPrice(line.price * line.quantity)}
-              </span>
-            </div>
+        {order.items.map((item) => (
+          <li
+            key={item.id}
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <span className="text-foreground">
+              {item.productName}
+              {item.variantName ? ` — ${item.variantName}` : ""}{" "}
+              <span className="text-muted">× {item.quantity}</span>
+            </span>
+            <span className="font-mono-price text-xs text-muted">
+              {formatPrice(item.totalPrice)}
+            </span>
           </li>
         ))}
       </ul>
 
-      <div className="mt-4 flex justify-between border-t border-border pt-4 font-mono-price text-sm">
-        <span className="uppercase tracking-widest text-muted">Total</span>
-        <span className="text-foreground">{formatPrice(order.subtotal)}</span>
+      <div className="mt-4 space-y-1.5 border-t border-border pt-4 font-mono-price text-xs text-muted">
+        <div className="flex justify-between">
+          <span className="uppercase tracking-widest">Subtotal</span>
+          <span>{formatPrice(order.subtotal)}</span>
+        </div>
+        {order.shippingAmount > 0 && (
+          <div className="flex justify-between">
+            <span className="uppercase tracking-widest">Shipping</span>
+            <span>{formatPrice(order.shippingAmount)}</span>
+          </div>
+        )}
+        {order.taxAmount > 0 && (
+          <div className="flex justify-between">
+            <span className="uppercase tracking-widest">Tax</span>
+            <span>{formatPrice(order.taxAmount)}</span>
+          </div>
+        )}
+        {order.discountAmount > 0 && (
+          <div className="flex justify-between text-accent">
+            <span className="uppercase tracking-widest">Discount</span>
+            <span>−{formatPrice(order.discountAmount)}</span>
+          </div>
+        )}
+        <div className="flex justify-between pt-1.5 text-sm text-foreground">
+          <span className="font-mono-price uppercase tracking-widest">
+            Total
+          </span>
+          <span>{formatPrice(order.totalAmount)}</span>
+        </div>
       </div>
 
       {/* returnStatus is a separate field from status — an order can
@@ -145,27 +177,29 @@ export default function OrderCard({
 
       {(!order.returnStatus || order.returnStatus === "REJECTED") &&
         (CANCELLABLE.includes(status) || RETURNABLE.includes(status)) && (
-        <div className="mt-4 flex gap-4 border-t border-border pt-4">
-          {CANCELLABLE.includes(status) && (
-            <button
-              onClick={handleCancel}
-              disabled={busy}
-              className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
-            >
-              Cancel order
-            </button>
-          )}
-          {RETURNABLE.includes(status) && (
-            <button
-              onClick={() => setShowReturnForm((s) => !s)}
-              disabled={busy}
-              className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
-            >
-              {order.returnStatus === "REJECTED" ? "Request return again" : "Start a return"}
-            </button>
-          )}
-        </div>
-      )}
+          <div className="mt-4 flex gap-4 border-t border-border pt-4">
+            {CANCELLABLE.includes(status) && (
+              <button
+                onClick={() => setConfirmingCancel(true)}
+                disabled={busy}
+                className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
+              >
+                Cancel order
+              </button>
+            )}
+            {RETURNABLE.includes(status) && (
+              <button
+                onClick={() => setShowReturnForm((s) => !s)}
+                disabled={busy}
+                className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
+              >
+                {order.returnStatus === "REJECTED"
+                  ? "Request return again"
+                  : "Start a return"}
+              </button>
+            )}
+          </div>
+        )}
 
       {showReturnForm && (
         <div className="mt-4 space-y-3 rounded-soft border border-border p-4">
@@ -198,6 +232,17 @@ export default function OrderCard({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingCancel}
+        title="Cancel this order?"
+        description="This can't be undone — you'll need to place a new order if you change your mind."
+        confirmLabel="Cancel order"
+        cancelLabel="Keep order"
+        busy={busy}
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmingCancel(false)}
+      />
     </div>
   );
 }

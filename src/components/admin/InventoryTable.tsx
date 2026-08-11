@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "@/store/toast-store";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import type { Product, ProductStatus } from "@/types";
 
 const STATUS_STYLES: Record<ProductStatus, string> = {
@@ -18,6 +19,10 @@ export default function InventoryTable({
   const [products, setProducts] = useState(initialProducts);
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [stock, setStock] = useState<Record<string, number>>(() =>
     Object.fromEntries(
       initialProducts.flatMap((p) =>
@@ -44,18 +49,21 @@ export default function InventoryTable({
   // Soft delete — the product disappears from listings but isn't
   // destroyed server-side (see prisma schema: deletedAt + status ->
   // ARCHIVED, order history stays intact).
-  const handleDeleteProduct = async (productId: string, name: string) => {
-    if (!confirm(`Delete "${name}" entirely? This can't be undone.`)) return;
+  const handleDeleteProduct = async () => {
+    if (!confirmingDelete) return;
+    const { id: productId, name } = confirmingDelete;
     setDeleting(productId);
     const res = await fetch(`/api/admin/products/${productId}`, {
       method: "DELETE",
     });
     setDeleting(null);
+    setConfirmingDelete(null);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      alert(body.error || "Couldn't delete this product.");
+      toast.error(body.error || "Couldn't delete this product.");
       return;
     }
+    toast.success(`${name} deleted.`);
     setProducts((p) => p.filter((prod) => prod.id !== productId));
   };
 
@@ -66,8 +74,8 @@ export default function InventoryTable({
         product list endpoint, so DRAFT and ARCHIVED products aren&apos;t
         retrievable from this screen.
       </p>
-      <div className="overflow-hidden rounded-soft border border-border">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-soft border border-border">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="border-b border-border bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted">
               <th className="px-5 py-3 font-normal">Product</th>
@@ -146,7 +154,10 @@ export default function InventoryTable({
                       {i === 0 && (
                         <button
                           onClick={() =>
-                            handleDeleteProduct(product.id, product.name)
+                            setConfirmingDelete({
+                              id: product.id,
+                              name: product.name,
+                            })
                           }
                           disabled={deleting === product.id}
                           className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent disabled:opacity-40"
@@ -164,6 +175,16 @@ export default function InventoryTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmingDelete}
+        title={`Delete "${confirmingDelete?.name}"?`}
+        description="This can't be undone."
+        confirmLabel="Delete product"
+        busy={!!deleting}
+        onConfirm={handleDeleteProduct}
+        onCancel={() => setConfirmingDelete(null)}
+      />
     </div>
   );
 }
