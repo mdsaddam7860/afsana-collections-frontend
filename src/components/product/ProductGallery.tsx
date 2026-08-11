@@ -48,11 +48,17 @@ export default function ProductGallery({
               key={img}
               onClick={() => setActive(i)}
               aria-label={`View image ${i + 1}`}
-              className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition-colors ${
+              className={`relative h-20 w-20 overflow-hidden rounded-soft border-2 transition-colors ${
                 active === i ? "border-accent" : "border-transparent"
               }`}
             >
-              <Image src={cldUrl(img)} alt="" fill sizes="80px" className="object-cover" />
+              <Image
+                src={cldUrl(img)}
+                alt=""
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
             </button>
           ))}
         </div>

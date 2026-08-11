@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCartStore } from "@/store/cart-store";
 import { useWishlistStore } from "@/store/wishlist-store";
+import { toast } from "@/store/toast-store";
 import { formatPrice } from "@/lib/currency";
 import { cldUrl } from "@/lib/cloudinary";
 import type { Product } from "@/types";
@@ -26,6 +27,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
+  const [added, setAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const isSaved = useWishlistStore((s) => s.isSaved(product.id));
   const toggleSaved = useWishlistStore((s) => s.toggle);
@@ -79,7 +81,12 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       <button
         type="button"
-        onClick={() => toggleSaved(product.id)}
+        onClick={() => {
+          toggleSaved(product.id);
+          toast.success(
+            isSaved ? "Removed from wishlist" : "Saved to wishlist"
+          );
+        }}
         aria-label={isSaved ? "Remove from wishlist" : "Save to wishlist"}
         className={`absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/60 backdrop-blur transition-all hover:scale-110 ${
           isSaved ? "text-accent" : "text-foreground/70"
@@ -109,8 +116,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       <button
         type="button"
-        disabled={!inStock}
-        onClick={() =>
+        disabled={!inStock || added}
+        onClick={() => {
           addItem({
             productId: product.id,
             variantId: defaultVariant.id,
@@ -120,11 +127,14 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               Number(defaultVariant.priceAdjustment),
             image: product.images[0],
             quantity: 1,
-          })
-        }
+          });
+          toast.success(`${product.name} added to bag`);
+          setAdded(true);
+          setTimeout(() => setAdded(false), 1500);
+        }}
         className="btn-fill mt-4 w-full rounded-sharp border border-border py-3 font-mono-price text-[11px] uppercase tracking-widest text-foreground transition-colors duration-300 hover:border-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-30"
       >
-        {inStock ? "Add to cart" : "Notify me"}
+        {!inStock ? "Notify me" : added ? "Added ✓" : "Add to cart"}
       </button>
     </div>
   );

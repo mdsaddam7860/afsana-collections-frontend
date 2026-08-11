@@ -40,6 +40,7 @@ export interface Product {
   slug: string;
   name: string;
   description: string | null;
+  price: number;
   basePrice: string; // decimal string, e.g. "18.00"
   status: ProductStatus;
   images: string[];

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore, selectSubtotal } from "@/store/cart-store";
 import { formatPrice } from "@/lib/currency";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function CartDrawer() {
   const isOpen = useCartStore((s) => s.isOpen);
@@ -43,9 +44,19 @@ export default function CartDrawer() {
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {items.length === 0 ? (
-            <p className="mt-10 text-center font-mono-price text-xs uppercase tracking-widest text-muted">
-              Your bag is empty
-            </p>
+            <EmptyState
+              title="Your bag is empty"
+              description="Pieces you add will show up here."
+              action={
+                <Link
+                  href="/shop"
+                  onClick={closeCart}
+                  className="font-mono-price text-[11px] uppercase tracking-widest text-accent underline underline-offset-2"
+                >
+                  Start shopping
+                </Link>
+              }
+            />
           ) : (
             <ul className="space-y-5">
               {items.map((item) => (
@@ -67,7 +78,10 @@ export default function CartDrawer() {
                       </span>
                     </div>
                     <div className="flex items-center gap-3 font-mono-price text-xs text-muted">
-                      <label htmlFor={`qty-${item.variantId}`} className="sr-only">
+                      <label
+                        htmlFor={`qty-${item.variantId}`}
+                        className="sr-only"
+                      >
                         Quantity for {item.name}
                       </label>
                       <select
@@ -100,7 +114,9 @@ export default function CartDrawer() {
 
         <div className="border-t border-border px-6 py-5">
           <div className="flex justify-between font-mono-price text-sm">
-            <span className="uppercase tracking-widest text-muted">Subtotal</span>
+            <span className="uppercase tracking-widest text-muted">
+              Subtotal
+            </span>
             <span>{formatPrice(subtotal)}</span>
           </div>
           <p className="mt-1 text-xs text-muted">

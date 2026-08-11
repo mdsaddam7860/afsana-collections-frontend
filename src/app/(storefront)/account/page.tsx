@@ -9,6 +9,8 @@ import WishlistCard from "@/components/account/WishlistCard";
 import PreferencesPanel from "@/components/account/PreferencesPanel";
 import AddressBook from "@/components/account/AddressBook";
 import ProfilePanel from "@/components/account/ProfilePanel";
+import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
 import { getAllProducts, getOrdersForUser } from "@/lib/api";
 import { useWishlistStore } from "@/store/wishlist-store";
 import type { Order, Product } from "@/types";
@@ -46,9 +48,13 @@ export default function AccountPage() {
   if (status === "loading" || !session) {
     return (
       <div className="mx-auto max-w-5xl px-6 pb-24 pt-32">
-        <p className="font-mono-price text-xs uppercase tracking-widest text-muted">
-          Loading…
-        </p>
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-[220px_1fr]">
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-7 w-32" />
+          </div>
+          <Skeleton className="h-40 w-full max-w-sm rounded-soft" />
+        </div>
       </div>
     );
   }
@@ -73,13 +79,26 @@ export default function AccountPage() {
                 Order history
               </h2>
               {orders.length === 0 ? (
-                <p className="mt-6 font-mono-price text-xs uppercase tracking-widest text-muted">
-                  No orders yet.
-                </p>
+                <EmptyState
+                  title="No orders yet"
+                  description="Pieces you order will show up here, with tracking and return options."
+                  action={
+                    <a
+                      href="/shop"
+                      className="font-mono-price text-[11px] uppercase tracking-widest text-accent underline underline-offset-2"
+                    >
+                      Start shopping
+                    </a>
+                  }
+                />
               ) : (
                 <div className="mt-6 space-y-5">
                   {orders.map((order) => (
-                    <OrderCard key={order.id} order={order} onChange={reloadOrders} />
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      onChange={reloadOrders}
+                    />
                   ))}
                 </div>
               )}
@@ -94,14 +113,26 @@ export default function AccountPage() {
                 Wishlist
               </h2>
               {wishlistProducts.length === 0 ? (
-                <p className="mt-6 font-mono-price text-xs uppercase tracking-widest text-muted">
-                  Nothing saved yet — hearts you add from product pages will
-                  land here.
-                </p>
+                <EmptyState
+                  title="Nothing saved yet"
+                  description="Hearts you add from product pages will land here."
+                  action={
+                    <a
+                      href="/shop"
+                      className="font-mono-price text-[11px] uppercase tracking-widest text-accent underline underline-offset-2"
+                    >
+                      Browse pieces
+                    </a>
+                  }
+                />
               ) : (
                 <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3">
                   {wishlistProducts.map((product, i) => (
-                    <WishlistCard key={product.id} product={product} index={i} />
+                    <WishlistCard
+                      key={product.id}
+                      product={product}
+                      index={i}
+                    />
                   ))}
                 </div>
               )}

@@ -1,5 +1,3 @@
-"use client";
-
 const STEPS = ["Information", "Shipping", "Payment"] as const;
 export type CheckoutStep = 0 | 1 | 2;
 

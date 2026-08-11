@@ -12,7 +12,9 @@ const EMPTY_FORM = {
   usageLimitGlobal: 100,
   usageLimitPerUser: 1,
   validFrom: new Date().toISOString().slice(0, 10),
-  validUntil: new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+  validUntil: new Date(Date.now() + 90 * 24 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10),
   isActive: true,
 };
 
@@ -75,9 +77,12 @@ export default function DiscountsPanel({
       validUntil: new Date(form.validUntil).toISOString(),
       isActive: form.isActive,
     };
-    if (form.maxDiscountAmount > 0) payload.maxDiscountAmount = form.maxDiscountAmount;
-    if (form.usageLimitGlobal > 0) payload.usageLimitGlobal = form.usageLimitGlobal;
-    if (form.usageLimitPerUser > 0) payload.usageLimitPerUser = form.usageLimitPerUser;
+    if (form.maxDiscountAmount > 0)
+      payload.maxDiscountAmount = form.maxDiscountAmount;
+    if (form.usageLimitGlobal > 0)
+      payload.usageLimitGlobal = form.usageLimitGlobal;
+    if (form.usageLimitPerUser > 0)
+      payload.usageLimitPerUser = form.usageLimitPerUser;
 
     try {
       const res = await fetch(
@@ -103,7 +108,9 @@ export default function DiscountsPanel({
 
   const handleDeactivate = async (id: string) => {
     if (!confirm("Deactivate this discount code?")) return;
-    await fetch(`/api/admin/discounts/${id}`, { method: "DELETE" }).catch(() => null);
+    await fetch(`/api/admin/discounts/${id}`, { method: "DELETE" }).catch(
+      () => null
+    );
     reload();
   };
 
@@ -116,8 +123,8 @@ export default function DiscountsPanel({
         + New discount
       </button>
 
-      <div className="mt-6 overflow-hidden rounded-soft border border-border">
-        <table className="w-full text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-soft border border-border">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="border-b border-border bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted">
               <th className="px-5 py-3 font-normal">Code</th>
@@ -131,7 +138,9 @@ export default function DiscountsPanel({
           <tbody>
             {discounts.map((d) => (
               <tr key={d.id} className="border-b border-border last:border-0">
-                <td className="px-5 py-3 font-mono-price text-foreground">{d.code}</td>
+                <td className="px-5 py-3 font-mono-price text-foreground">
+                  {d.code}
+                </td>
                 <td className="px-5 py-3 text-muted">{d.type}</td>
                 <td className="px-5 py-3 text-muted">
                   {d.type === "PERCENTAGE" ? `${d.value}%` : d.value}
@@ -142,7 +151,9 @@ export default function DiscountsPanel({
                 <td className="px-5 py-3">
                   <span
                     className={`rounded-pill border px-3 py-1 font-mono-price text-[10px] uppercase tracking-widest ${
-                      d.isActive ? "border-accent/50 text-accent" : "border-border text-muted"
+                      d.isActive
+                        ? "border-accent/50 text-accent"
+                        : "border-border text-muted"
                     }`}
                   >
                     {d.isActive ? "Active" : "Inactive"}
@@ -170,7 +181,10 @@ export default function DiscountsPanel({
             ))}
             {discounts.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted">
+                <td
+                  colSpan={6}
+                  className="px-5 py-6 text-center text-sm text-muted"
+                >
                   No discount codes yet.
                 </td>
               </tr>
@@ -190,7 +204,9 @@ export default function DiscountsPanel({
               <input
                 placeholder="Code (e.g. WELCOME10)"
                 value={form.code}
-                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))
+                }
                 disabled={!!editing}
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted disabled:opacity-50"
               />
@@ -198,18 +214,27 @@ export default function DiscountsPanel({
                 <select
                   value={form.type}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, type: e.target.value as "PERCENTAGE" | "FIXED_AMOUNT" }))
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as "PERCENTAGE" | "FIXED_AMOUNT",
+                    }))
                   }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 >
-                  <option value="PERCENTAGE" className="bg-surface">Percentage</option>
-                  <option value="FIXED_AMOUNT" className="bg-surface">Fixed amount</option>
+                  <option value="PERCENTAGE" className="bg-surface">
+                    Percentage
+                  </option>
+                  <option value="FIXED_AMOUNT" className="bg-surface">
+                    Fixed amount
+                  </option>
                 </select>
                 <input
                   type="number"
                   placeholder="Value"
                   value={form.value}
-                  onChange={(e) => setForm((f) => ({ ...f, value: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, value: Number(e.target.value) }))
+                  }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 />
               </div>
@@ -221,7 +246,9 @@ export default function DiscountsPanel({
                   <input
                     type="date"
                     value={form.validFrom}
-                    onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, validFrom: e.target.value }))
+                    }
                     className="mt-1 w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                   />
                 </div>
@@ -232,7 +259,9 @@ export default function DiscountsPanel({
                   <input
                     type="date"
                     value={form.validUntil}
-                    onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, validUntil: e.target.value }))
+                    }
                     className="mt-1 w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                   />
                 </div>
@@ -248,7 +277,10 @@ export default function DiscountsPanel({
                     placeholder="0"
                     value={form.minOrderAmount}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, minOrderAmount: Number(e.target.value) }))
+                      setForm((f) => ({
+                        ...f,
+                        minOrderAmount: Number(e.target.value),
+                      }))
                     }
                     className="mt-1 w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                   />
@@ -263,7 +295,10 @@ export default function DiscountsPanel({
                     placeholder="No cap"
                     value={form.maxDiscountAmount || ""}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, maxDiscountAmount: Number(e.target.value) }))
+                      setForm((f) => ({
+                        ...f,
+                        maxDiscountAmount: Number(e.target.value),
+                      }))
                     }
                     className="mt-1 w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                   />
@@ -279,7 +314,10 @@ export default function DiscountsPanel({
                   placeholder="Usage limit (global)"
                   value={form.usageLimitGlobal}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, usageLimitGlobal: Number(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      usageLimitGlobal: Number(e.target.value),
+                    }))
                   }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 />
@@ -288,7 +326,10 @@ export default function DiscountsPanel({
                   placeholder="Usage limit (per user)"
                   value={form.usageLimitPerUser}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, usageLimitPerUser: Number(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      usageLimitPerUser: Number(e.target.value),
+                    }))
                   }
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 />
@@ -296,7 +337,10 @@ export default function DiscountsPanel({
             </div>
 
             {error && (
-              <p role="alert" className="mt-3 font-mono-price text-xs text-accent">
+              <p
+                role="alert"
+                className="mt-3 font-mono-price text-xs text-accent"
+              >
                 {error}
               </p>
             )}

@@ -20,6 +20,7 @@ export default function ShippingStep({
   onBillingChange,
   onNext,
   onBack,
+  loading = false,
 }: {
   value: ShippingAddress;
   onChange: (v: ShippingAddress) => void;
@@ -29,11 +30,17 @@ export default function ShippingStep({
   onBillingChange: (v: OrderAddress) => void;
   onNext: () => void;
   onBack: () => void;
+  loading?: boolean;
 }) {
   const [billingTouched, setBillingTouched] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // onNext (handleShippingSubmit in the parent) isn't itself guarded
+    // against re-entry — this is the only thing stopping a fast
+    // double-click/Enter-repeat from firing two POST /checkout calls
+    // and creating two orders + two payment intents for one submission.
+    if (loading) return;
     onNext();
   };
 
@@ -80,15 +87,17 @@ export default function ShippingStep({
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 rounded-sharp border border-border py-4 font-mono-price text-xs uppercase tracking-widest text-muted transition-colors hover:border-foreground/40 hover:text-foreground"
+          disabled={loading}
+          className="flex-1 rounded-sharp border border-border py-4 font-mono-price text-xs uppercase tracking-widest text-muted transition-colors hover:border-foreground/40 hover:text-foreground disabled:opacity-40"
         >
           Back
         </button>
         <button
           type="submit"
-          className="btn-fill flex-[2] rounded-sharp border border-accent py-4 font-mono-price text-xs uppercase tracking-widest text-foreground transition-colors hover:text-accent-foreground"
+          disabled={loading}
+          className="btn-fill flex-[2] rounded-sharp border border-accent py-4 font-mono-price text-xs uppercase tracking-widest text-foreground transition-colors hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Continue to payment
+          {loading ? "Placing order…" : "Continue to payment"}
         </button>
       </div>
     </form>

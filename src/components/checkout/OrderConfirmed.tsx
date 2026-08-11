@@ -1,8 +1,10 @@
-"use client";
-
 import Link from "next/link";
 
-export default function OrderConfirmed({ orderNumber }: { orderNumber: string }) {
+export default function OrderConfirmed({
+  orderNumber,
+}: {
+  orderNumber: string;
+}) {
   return (
     <div className="stagger-in flex flex-col items-center py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-accent text-accent">
@@ -15,8 +17,8 @@ export default function OrderConfirmed({ orderNumber }: { orderNumber: string })
         #{orderNumber}
       </p>
       <p className="mt-5 max-w-sm text-sm text-muted">
-        We've sent a confirmation to your email. Your bag is on its way to
-        being on its way.
+        We've sent a confirmation to your email. Your bag is on its way to being
+        on its way.
       </p>
       <Link
         href="/shop"

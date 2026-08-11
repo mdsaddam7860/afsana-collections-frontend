@@ -7,12 +7,19 @@ import { Elements } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { useCartStore } from "@/store/cart-store";
-import StepIndicator, { type CheckoutStep } from "@/components/checkout/StepIndicator";
+import StepIndicator, {
+  type CheckoutStep,
+} from "@/components/checkout/StepIndicator";
 import OrderSummary from "@/components/checkout/OrderSummary";
-import InformationStep, { type ContactInfo } from "@/components/checkout/InformationStep";
-import ShippingStep, { type ShippingAddress } from "@/components/checkout/ShippingStep";
+import InformationStep, {
+  type ContactInfo,
+} from "@/components/checkout/InformationStep";
+import ShippingStep, {
+  type ShippingAddress,
+} from "@/components/checkout/ShippingStep";
 import { EMPTY_ORDER_ADDRESS } from "@/components/checkout/AddressFields";
 import PaymentStep from "@/components/checkout/PaymentStep";
+import { toast } from "@/store/toast-store";
 import OrderConfirmed from "@/components/checkout/OrderConfirmed";
 import type { OrderAddress } from "@/types";
 
@@ -90,6 +97,12 @@ export default function CheckoutPage() {
   // not on page load, so we don't create abandoned orders/intents for
   // people who never make it past step 1.
   const handleShippingSubmit = async () => {
+    // Guards against a re-entrant call even if ShippingStep's own
+    // disabled-button check is somehow bypassed (e.g. Enter-key repeat
+    // racing the state update) — this is the actual source of truth
+    // that prevents creating two orders for one submission.
+    if (creatingOrder) return;
+
     const accessToken = (session as unknown as { accessToken?: string })
       ?.accessToken;
     if (!accessToken) {
@@ -115,9 +128,10 @@ export default function CheckoutPage() {
       setOrderNumber(data.orderId);
       setStep(2);
     } catch (err) {
-      setCheckoutError(
-        err instanceof Error ? err.message : "Something went wrong."
-      );
+      const message =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setCreatingOrder(false);
     }
@@ -174,14 +188,13 @@ export default function CheckoutPage() {
                 onBillingChange={setBilling}
                 onNext={handleShippingSubmit}
                 onBack={() => setStep(0)}
+                loading={creatingOrder}
               />
-              {creatingOrder && (
-                <p className="mt-4 font-mono-price text-xs uppercase tracking-widest text-muted">
-                  Placing your order…
-                </p>
-              )}
               {checkoutError && (
-                <p role="alert" className="mt-4 font-mono-price text-xs text-accent">
+                <p
+                  role="alert"
+                  className="mt-4 font-mono-price text-xs text-accent"
+                >
                   {checkoutError}
                 </p>
               )}
@@ -199,6 +212,7 @@ export default function CheckoutPage() {
                   onSuccess={() => {
                     clearCart();
                     setConfirmed(true);
+                    toast.success("Order placed!");
                   }}
                 />
               </Elements>

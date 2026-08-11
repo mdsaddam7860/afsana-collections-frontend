@@ -6,6 +6,8 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import Spinner from "@/components/ui/Spinner";
+import { toast } from "@/store/toast-store";
 
 export default function PaymentStep({
   onBack,
@@ -21,7 +23,11 @@ export default function PaymentStep({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    // stripe/elements not ready yet, or a payment is already in flight —
+    // the disabled state on the submit button covers the same case, but
+    // guarding here too prevents a double-submit from a fast double-click
+    // or an Enter-key repeat before the button visually disables.
+    if (!stripe || !elements || submitting) return;
 
     setSubmitting(true);
     setError(null);
@@ -34,7 +40,10 @@ export default function PaymentStep({
     setSubmitting(false);
 
     if (stripeError) {
-      setError(stripeError.message ?? "Payment failed. Please try again.");
+      const message =
+        stripeError.message ?? "Payment failed. Please try again.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -72,9 +81,10 @@ export default function PaymentStep({
         <button
           type="submit"
           disabled={!stripe || submitting}
-          className="btn-fill flex-[2] rounded-sharp border border-accent py-4 font-mono-price text-xs uppercase tracking-widest text-foreground transition-colors hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn-fill flex-[2] flex items-center justify-center gap-2 rounded-sharp border border-accent py-4 font-mono-price text-xs uppercase tracking-widest text-foreground transition-colors hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {submitting ? "Processing…" : "Pay now"}
+          {submitting && <Spinner size={13} />}
+          {submitting ? "Processing payment…" : "Pay now"}
         </button>
       </div>
     </form>

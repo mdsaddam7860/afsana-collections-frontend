@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AUTH_CONTENT, BRAND } from "@/lib/constants";
 import { cldUrl } from "@/lib/cloudinary";
 import { useCartStore } from "@/store/cart-store";
+import { toast } from "@/store/toast-store";
 
 // useSearchParams() (used to read ?next=/checkout so we can send people
 // back where they came from after signing in) requires a Suspense
@@ -66,7 +67,11 @@ function LoginForm() {
     }
 
     setLoading(false);
+    toast.success("Signed in.");
 
+    // Admins land on the admin dashboard instead of the customer account
+    // page, unless a specific ?next= destination was requested (e.g.
+    // returning to /checkout) — that explicit intent wins either way.
     const explicitNext = searchParams.get("next");
     if (!explicitNext) {
       const session = await getSession();

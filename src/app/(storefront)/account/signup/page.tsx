@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { AUTH_CONTENT, BRAND } from "@/lib/constants";
 import { cldUrl } from "@/lib/cloudinary";
+import { toast } from "@/store/toast-store";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -21,8 +22,6 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    // Replace with a real registration call (e.g. POST /api/auth/register)
-    // that hashes the password and creates the user, then sign them in.
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -31,7 +30,8 @@ export default function SignupPage() {
 
     if (!res || !res.ok) {
       setLoading(false);
-      setError("Something went wrong creating your account.");
+      const body = await res?.json().catch(() => ({}));
+      setError(body?.error || "Something went wrong creating your account.");
       return;
     }
 
@@ -43,9 +43,11 @@ export default function SignupPage() {
 
     setLoading(false);
     if (signInRes?.error) {
-      setError("Account created — try signing in.");
+      toast.success("Account created — sign in to continue.");
+      router.push("/account/login");
       return;
     }
+    toast.success("Account created. Verify your email to place orders.");
     router.push("/account");
   };
 
@@ -54,8 +56,12 @@ export default function SignupPage() {
       <div className="mesh-atmosphere relative hidden overflow-hidden md:block">
         <div className="grain-overlay" />
         <div className="relative flex h-full flex-col justify-between p-12">
-          <Link href="/" className="font-display text-lg italic text-foreground">
-            {BRAND.nameParts.first} <span className="text-accent">{BRAND.nameParts.second}</span>
+          <Link
+            href="/"
+            className="font-display text-lg italic text-foreground"
+          >
+            {BRAND.nameParts.first}{" "}
+            <span className="text-accent">{BRAND.nameParts.second}</span>
           </Link>
           <div>
             <p className="font-display text-fluid-h1 italic leading-none text-foreground">
@@ -85,7 +91,8 @@ export default function SignupPage() {
             href="/"
             className="font-display text-lg italic text-foreground md:hidden"
           >
-            {BRAND.nameParts.first} <span className="text-accent">{BRAND.nameParts.second}</span>
+            {BRAND.nameParts.first}{" "}
+            <span className="text-accent">{BRAND.nameParts.second}</span>
           </Link>
 
           <h1 className="font-display text-fluid-h2 mt-8 italic text-foreground md:mt-0">
@@ -93,7 +100,10 @@ export default function SignupPage() {
           </h1>
           <p className="mt-2 text-sm text-muted">
             Already have one?{" "}
-            <Link href="/account/login" className="text-accent hover:opacity-70">
+            <Link
+              href="/account/login"
+              className="text-accent hover:opacity-70"
+            >
               Sign in
             </Link>
           </p>

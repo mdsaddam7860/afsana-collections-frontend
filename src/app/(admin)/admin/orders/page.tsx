@@ -16,8 +16,8 @@ export default async function AdminOrdersPage() {
       </h1>
       <p className="mt-2 text-sm text-muted">{orders.length} orders</p>
 
-      <div className="mt-8 overflow-hidden rounded-soft border border-border">
-        <table className="w-full text-left">
+      <div className="mt-8 overflow-x-auto rounded-soft border border-border">
+        <table className="w-full min-w-[720px] text-left">
           <thead>
             <tr className="border-b border-border bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted">
               <th className="px-5 py-3 font-normal">Order</th>

@@ -28,6 +28,15 @@ export const SEO = {
     "Oversized silk scrunchies, acetate claw clips, and cotton headbands.",
 };
 
+// Canonical origin for metadataBase, canonical URLs, Open Graph images,
+// sitemap.ts, and JSON-LD. Falls back to the brand's real domain so
+// production builds are correct even if the env var is missed, but a
+// local/staging deploy should set NEXT_PUBLIC_SITE_URL to its own origin
+// (e.g. http://localhost:3000) or Open Graph/canonical URLs will point
+// at the production domain instead.
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? `https://${BRAND.domain}`;
+
 export const HERO_CONTENT = {
   eyebrow: "Fall drop / 02",
   headlineLine1: "Hair, held",

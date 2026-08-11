@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "@/store/toast-store";
 import type { Product, ProductStatus } from "@/types";
 
 const STATUS_STYLES: Record<ProductStatus, string> = {
@@ -27,12 +28,17 @@ export default function InventoryTable({
 
   const handleSave = async (variantId: string) => {
     setSaving(variantId);
-    await fetch("/api/admin/inventory", {
+    const res = await fetch("/api/admin/inventory", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ variantId, stockQuantity: stock[variantId] }),
     }).catch(() => null);
     setSaving(null);
+    if (!res || !res.ok) {
+      toast.error("Couldn't update stock.");
+      return;
+    }
+    toast.success("Stock updated.");
   };
 
   // Soft delete — the product disappears from listings but isn't

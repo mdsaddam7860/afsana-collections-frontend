@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Category } from "@/lib/admin-api";
 import type { ProductStatus } from "@/types";
+import { toast } from "@/store/toast-store";
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 
 export default function NewProductForm() {
   const router = useRouter();
@@ -30,6 +32,10 @@ export default function NewProductForm() {
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const dialogRef = useDialogA11y(showForm, () => {
+    setShowForm(false);
+    setImageFiles([]);
+  });
 
   useEffect(() => {
     if (!showForm || categories) return;
@@ -152,6 +158,7 @@ export default function NewProductForm() {
       }
 
       setShowForm(false);
+      toast.success(`${form.name} created.`);
       router.refresh();
     } catch (err) {
       setError(
@@ -173,9 +180,25 @@ export default function NewProductForm() {
       </button>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-soft border border-border bg-background p-6">
-            <h3 className="font-display text-xl italic text-foreground">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => {
+            setShowForm(false);
+            setImageFiles([]);
+          }}
+        >
+          <div
+            ref={dialogRef as React.RefObject<HTMLDivElement>}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-product-heading"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-soft border border-border bg-background p-6"
+          >
+            <h3
+              id="new-product-heading"
+              className="font-display text-xl italic text-foreground"
+            >
               New product
             </h3>
 

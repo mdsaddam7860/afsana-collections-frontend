@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
+import { toast } from "@/store/toast-store";
 import type { User } from "@/types";
 
 export default function ProfilePanel() {
@@ -50,12 +51,15 @@ export default function ProfilePanel() {
     setSaving(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error || "Couldn't save your changes.");
+      const message = body.error || "Couldn't save your changes.";
+      setError(message);
+      toast.error(message);
       return;
     }
     const updated = await res.json();
     setUser(updated);
     setSaved(true);
+    toast.success("Profile updated.");
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -74,6 +78,7 @@ export default function ProfilePanel() {
       return;
     }
     setOtp("");
+    toast.success("Email verified.");
     loadUser();
   };
 
@@ -144,7 +149,9 @@ export default function ProfilePanel() {
               <label className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
                 Account ID
               </label>
-              <p className="mt-1 font-mono-price text-xs text-muted">{user.id}</p>
+              <p className="mt-1 font-mono-price text-xs text-muted">
+                {user.id}
+              </p>
             </div>
 
             {error && (
@@ -171,8 +178,8 @@ export default function ProfilePanel() {
                 Verify your email
               </p>
               <p className="mt-2 text-sm text-muted">
-                Enter the 6-digit code sent to {user.email} when you signed
-                up. Orders can&apos;t be placed until this is confirmed.
+                Enter the 6-digit code sent to {user.email} when you signed up.
+                Orders can&apos;t be placed until this is confirmed.
               </p>
               <form onSubmit={handleVerify} className="mt-4 flex gap-2">
                 <input
@@ -193,7 +200,10 @@ export default function ProfilePanel() {
                 </button>
               </form>
               {verifyError && (
-                <p role="alert" className="mt-2 font-mono-price text-xs text-accent">
+                <p
+                  role="alert"
+                  className="mt-2 font-mono-price text-xs text-accent"
+                >
                   {verifyError}
                 </p>
               )}

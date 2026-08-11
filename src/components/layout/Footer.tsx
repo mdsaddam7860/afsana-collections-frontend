@@ -14,7 +14,9 @@ export default function Footer() {
           <p className="font-display text-fluid-hero italic leading-none tracking-tight text-foreground">
             {FOOTER_CONTENT.newsletterHeadline.line1}
             <br />
-            <span className="text-accent">{FOOTER_CONTENT.newsletterHeadline.line2}</span>
+            <span className="text-accent">
+              {FOOTER_CONTENT.newsletterHeadline.line2}
+            </span>
           </p>
           <p className="mt-6 max-w-xs text-sm text-muted">
             {FOOTER_CONTENT.newsletterBody}
@@ -25,7 +27,7 @@ export default function Footer() {
               e.preventDefault();
               setSubmitted(true);
             }}
-            className="mt-8 flex max-w-sm items-center border-b border-border pb-3"
+            className="mt-8 flex max-w-sm items-center border-b border-border pb-3 focus-within:border-accent"
           >
             <input
               type="email"
@@ -52,7 +54,10 @@ export default function Footer() {
             </p>
             <ul className="mt-4 space-y-3 text-foreground/80">
               {CATEGORIES.map((cat) => (
-                <li key={cat.slug} className="transition-colors hover:text-accent">
+                <li
+                  key={cat.slug}
+                  className="transition-colors hover:text-accent"
+                >
                   {cat.label}
                 </li>
               ))}
@@ -74,7 +79,9 @@ export default function Footer() {
       </div>
 
       <div className="mx-auto flex max-w-7xl items-center justify-between border-t border-border px-6 py-6 text-xs text-muted lg:px-8">
-        <span>© {new Date().getFullYear()} {BRAND.name}</span>
+        <span>
+          © {new Date().getFullYear()} {BRAND.name}
+        </span>
         <span className="font-mono-price">{FOOTER_CONTENT.closingLine}</span>
       </div>
     </footer>

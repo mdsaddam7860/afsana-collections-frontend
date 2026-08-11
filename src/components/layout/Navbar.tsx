@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useCartStore, selectItemCount } from "@/store/cart-store";
 import { BRAND, CATEGORIES } from "@/lib/constants";
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 
 const NAV_LINKS = CATEGORIES.map((c) => ({
   href: `/shop/${c.slug}`,
@@ -13,10 +14,14 @@ const NAV_LINKS = CATEGORIES.map((c) => ({
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
   const itemCount = useCartStore(selectItemCount);
   const openCart = useCartStore((s) => s.openCart);
   const [pulse, setPulse] = useState(false);
+  const mobileMenuRef = useDialogA11y(mobileMenuOpen, () =>
+    setMobileMenuOpen(false)
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -40,8 +45,30 @@ export default function Navbar() {
             : "rounded-pill px-6 py-3"
         }`}
       >
+        {/* Mobile menu toggle — the category links below are hidden below
+            md, so this is the only way to reach /shop/* on a phone. */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((v) => !v)}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+          className="flex h-8 w-8 flex-col items-center justify-center gap-1.5 md:hidden"
+        >
+          <span
+            className={`block h-px w-5 bg-foreground transition-transform duration-300 ${
+              mobileMenuOpen ? "translate-y-[3.5px] rotate-45" : ""
+            }`}
+          />
+          <span
+            className={`block h-px w-5 bg-foreground transition-transform duration-300 ${
+              mobileMenuOpen ? "-translate-y-[3.5px] -rotate-45" : ""
+            }`}
+          />
+        </button>
+
         <Link href="/" className="font-display text-lg italic tracking-tight">
-          {BRAND.nameParts.first} <span className="text-accent">{BRAND.nameParts.second}</span>
+          {BRAND.nameParts.first}{" "}
+          <span className="text-accent">{BRAND.nameParts.second}</span>
         </Link>
 
         <div className="hidden gap-7 text-sm text-muted md:flex">
@@ -77,7 +104,9 @@ export default function Navbar() {
               <circle cx="12" cy="7" r="4" />
             </svg>
             <span className="hidden font-mono-price text-xs uppercase tracking-widest sm:inline">
-              {session ? session.user?.name?.split(" ")[0] || "Account" : "Sign In"}
+              {session
+                ? session.user?.name?.split(" ")[0] || "Account"
+                : "Sign In"}
             </span>
           </Link>
           <button
@@ -99,6 +128,34 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
+
+      {mobileMenuOpen && (
+        <>
+          <div
+            aria-hidden="true"
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 z-30 bg-background/60 backdrop-blur-sm md:hidden"
+          />
+          <div
+            ref={mobileMenuRef as React.RefObject<HTMLDivElement>}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site navigation"
+            className="glass-panel fixed inset-x-4 top-20 z-40 rounded-soft p-2 shadow-lift md:hidden"
+          >
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block rounded-sharp px-4 py-3 text-sm text-foreground transition-colors hover:bg-surface"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </header>
   );
 }

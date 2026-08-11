@@ -95,13 +95,15 @@ export async function getOrdersForUser(accessToken: string): Promise<Order[]> {
 export async function registerUser({
   email,
   password,
+  name,
 }: {
   email: string;
   password: string;
+  name?: string;
 }): Promise<{ id: string; email: string } | null> {
   const raw = await apiFetch<unknown>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, name: name || undefined }),
   });
   return unwrapObject<{ id: string; email: string } | null>(raw);
 }
