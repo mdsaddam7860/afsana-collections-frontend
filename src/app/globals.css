@@ -3,11 +3,33 @@
 @tailwind utilities;
 
 /* ============================================
-   THEME: "Nocturne" — boutique-at-night
-   Deep plum-black base, one molten-copper accent.
+   THEME: "Linen" — warm off-white, airy (default)
    ============================================ */
 
 :root {
+  --background: 36 32% 96%;        /* #F8F3EC */
+  --surface: 36 28% 91%;           /* #EFE6D8 */
+  --surface-raised: 36 24% 86%;    /* #E5D9C6 */
+  --foreground: 20 22% 16%;        /* #2E2620 */
+  --muted: 24 10% 42%;             /* #78706A */
+  --border: 30 18% 80%;
+
+  --accent: 24 78% 46%;            /* deeper copper for contrast on light bg */
+  --accent-foreground: 36 32% 96%;
+
+  --clay: 14 38% 58%;
+  --shadow: 30 20% 60%;
+
+  --radius-sharp: 0px;
+  --radius-soft: 6px;
+  --radius-pill: 999px;
+}
+
+/* ============================================
+   THEME: "Nocturne" — boutique-at-night
+   Deep plum-black base, one molten-copper accent.
+   ============================================ */
+[data-theme="nocturne"] {
   /* Base atmosphere */
   --background: 315 18% 7%;        /* #150F13 — warm near-black */
   --surface: 315 14% 12%;          /* #211820 — card/panel surface */
@@ -24,28 +46,6 @@
   --clay: 14 38% 38%;
 
   --shadow: 315 40% 3%;
-
-  --radius-sharp: 0px;
-  --radius-soft: 6px;
-  --radius-pill: 999px;
-}
-
-/* ============================================
-   THEME: "Linen" — warm off-white, airy
-   ============================================ */
-[data-theme="linen"] {
-  --background: 36 32% 96%;        /* #F8F3EC */
-  --surface: 36 28% 91%;           /* #EFE6D8 */
-  --surface-raised: 36 24% 86%;    /* #E5D9C6 */
-  --foreground: 20 22% 16%;        /* #2E2620 */
-  --muted: 24 10% 42%;             /* #78706A */
-  --border: 30 18% 80%;
-
-  --accent: 24 78% 46%;            /* deeper copper for contrast on light bg */
-  --accent-foreground: 36 32% 96%;
-
-  --clay: 14 38% 58%;
-  --shadow: 30 20% 60%;
 }
 
 /* ============================================
@@ -74,12 +74,11 @@
 
 html {
   background: hsl(var(--background));
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-html[data-theme="linen"],
-html[data-theme="clay"] {
-  color-scheme: light;
+html[data-theme="nocturne"] {
+  color-scheme: dark;
 }
 
 body {

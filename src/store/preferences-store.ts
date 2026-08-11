@@ -2,11 +2,11 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // Three palettes as CSS variable sets — see globals.css for the actual
-// [data-theme="..."] color values. "nocturne" is the original design;
-// "linen" and "clay" are added light/warm alternatives.
+// [data-theme="..."] color values. "linen" is the default; "nocturne"
+// and "clay" are selectable alternatives.
 export const THEMES = [
-  { id: "nocturne", label: "Nocturne", description: "Plum-black, copper accent (default)" },
-  { id: "linen", label: "Linen", description: "Warm off-white, soft and airy" },
+  { id: "linen", label: "Linen", description: "Warm off-white, soft and airy (default)" },
+  { id: "nocturne", label: "Nocturne", description: "Plum-black, copper accent" },
   { id: "clay", label: "Clay", description: "Terracotta and cream, daylight-friendly" },
 ] as const;
 
@@ -28,7 +28,7 @@ interface PreferencesState {
 export const usePreferencesStore = create<PreferencesState>()(
   persist(
     (set) => ({
-      theme: "nocturne",
+      theme: "linen",
       reduceMotion: false,
       setTheme: (theme) => set({ theme }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),

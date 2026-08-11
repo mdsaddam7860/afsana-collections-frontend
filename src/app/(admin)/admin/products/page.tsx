@@ -1,9 +1,15 @@
+import { getServerSession } from "next-auth";
 import InventoryTable from "@/components/admin/InventoryTable";
 import NewProductForm from "@/components/admin/NewProductForm";
-import { getInventory } from "@/lib/admin-api";
+import { getAdminProducts } from "@/lib/admin-api";
+import { authOptions } from "@/lib/auth";
 
 export default async function AdminProductsPage() {
-  const products = await getInventory();
+  const session = await getServerSession(authOptions);
+  const accessToken =
+    (session as unknown as { accessToken?: string })?.accessToken ?? "";
+  const products = await getAdminProducts(accessToken);
+  const activeCount = products.filter((p) => p.status === "ACTIVE").length;
 
   return (
     <div>
@@ -13,9 +19,8 @@ export default async function AdminProductsPage() {
             Inventory
           </h1>
           <p className="mt-2 text-sm text-muted">
-            {products.length} active products · stock levels below 5 are
-            flagged. Draft and archived products aren&apos;t shown — this
-            backend has no admin list endpoint that includes them.
+            {products.length} products ({activeCount} active) · stock levels
+            below 5 are flagged.
           </p>
         </div>
         <NewProductForm />

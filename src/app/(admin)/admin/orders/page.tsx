@@ -16,24 +16,24 @@ export default async function AdminOrdersPage() {
       </h1>
       <p className="mt-2 text-sm text-muted">{orders.length} orders</p>
 
-      <div className="mt-8 overflow-x-auto rounded-soft border border-border">
-        <table className="w-full min-w-[720px] text-left">
-          <thead>
-            <tr className="border-b border-border bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted">
-              <th className="px-5 py-3 font-normal">Order</th>
-              <th className="px-5 py-3 font-normal">Date</th>
-              <th className="px-5 py-3 font-normal">Items</th>
-              <th className="px-5 py-3 font-normal">Total</th>
-              <th className="px-5 py-3 font-normal">Status</th>
-              <th className="px-5 py-3 font-normal">Returns</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-8 rounded-soft border border-border md:overflow-x-auto">
+        <div className="flex flex-col divide-y divide-border md:table md:w-full md:min-w-[720px] md:divide-y-0 md:text-left">
+          <div className="hidden bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted md:table-header-group">
+            <div className="md:table-row">
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Order</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Date</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Items</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Total</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Status</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Returns</span>
+            </div>
+          </div>
+          <div className="md:table-row-group">
             {orders.map((order) => (
               <OrderRow key={order.id} order={order} />
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     </div>
   );

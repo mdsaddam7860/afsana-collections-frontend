@@ -193,7 +193,7 @@ export default function NewProductForm() {
             aria-modal="true"
             aria-labelledby="new-product-heading"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-soft border border-border bg-background p-6"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-soft border border-border bg-background p-5 sm:p-6"
           >
             <h3
               id="new-product-heading"
@@ -228,7 +228,7 @@ export default function NewProductForm() {
                 rows={2}
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="number"
                   step="0.01"
@@ -327,7 +327,7 @@ export default function NewProductForm() {
               <p className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
                 First variant
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   placeholder="Variant name (e.g. Small / Blush)"
                   value={form.variantName}
@@ -345,7 +345,7 @@ export default function NewProductForm() {
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <input
                   placeholder="Color"
                   value={form.color}
@@ -371,7 +371,7 @@ export default function NewProductForm() {
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="number"
                   step="0.01"

@@ -138,32 +138,26 @@ export default function DiscountsPanel({
         + New discount
       </button>
 
-      <div className="mt-6 overflow-x-auto rounded-soft border border-border">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted">
-              <th className="px-5 py-3 font-normal">Code</th>
-              <th className="px-5 py-3 font-normal">Type</th>
-              <th className="px-5 py-3 font-normal">Value</th>
-              <th className="px-5 py-3 font-normal">Valid until</th>
-              <th className="px-5 py-3 font-normal">Status</th>
-              <th className="px-5 py-3 font-normal"></th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-6 rounded-soft border border-border md:overflow-x-auto">
+        <div className="flex flex-col divide-y divide-border md:table md:w-full md:min-w-[720px] md:divide-y-0 md:text-left md:text-sm">
+          <div className="hidden bg-surface font-mono-price text-[10px] uppercase tracking-widest text-muted md:table-header-group">
+            <div className="md:table-row">
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Code</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Type</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Value</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Valid until</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal">Status</span>
+              <span className="md:table-cell md:px-5 md:py-3 md:font-normal"></span>
+            </div>
+          </div>
+          <div className="md:table-row-group">
             {discounts.map((d) => (
-              <tr key={d.id} className="border-b border-border last:border-0">
-                <td className="px-5 py-3 font-mono-price text-foreground">
-                  {d.code}
-                </td>
-                <td className="px-5 py-3 text-muted">{d.type}</td>
-                <td className="px-5 py-3 text-muted">
-                  {d.type === "PERCENTAGE" ? `${d.value}%` : d.value}
-                </td>
-                <td className="px-5 py-3 text-muted">
-                  {new Date(d.validUntil).toLocaleDateString()}
-                </td>
-                <td className="px-5 py-3">
+              <div
+                key={d.id}
+                className="px-4 py-3 md:table-row md:border-b md:border-border md:px-0 md:py-0 md:last:border-0"
+              >
+                <div className="mb-1 flex items-center justify-between gap-3 md:hidden">
+                  <span className="font-mono-price text-sm text-foreground">{d.code}</span>
                   <span
                     className={`rounded-pill border px-3 py-1 font-mono-price text-[10px] uppercase tracking-widest ${
                       d.isActive
@@ -173,44 +167,69 @@ export default function DiscountsPanel({
                   >
                     {d.isActive ? "Active" : "Inactive"}
                   </span>
-                </td>
-                <td className="px-5 py-3">
-                  <div className="flex gap-4">
+                </div>
+                <span className="hidden font-mono-price text-foreground md:table-cell md:px-5 md:py-3">
+                  {d.code}
+                </span>
+                <span className="hidden text-muted md:table-cell md:px-5 md:py-3">{d.type}</span>
+                <div className="flex items-center justify-between py-1 md:table-cell md:justify-start md:px-5 md:py-3">
+                  <span className="font-mono-price text-[10px] uppercase tracking-widest text-muted md:hidden">
+                    Value
+                  </span>
+                  <span className="text-muted">
+                    {d.type === "PERCENTAGE" ? `${d.value}%` : d.value}{" "}
+                    <span className="md:hidden">({d.type})</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1 md:table-cell md:justify-start md:px-5 md:py-3">
+                  <span className="font-mono-price text-[10px] uppercase tracking-widest text-muted md:hidden">
+                    Valid until
+                  </span>
+                  <span className="text-muted">
+                    {new Date(d.validUntil).toLocaleDateString()}
+                  </span>
+                </div>
+                <span className="hidden md:table-cell md:px-5 md:py-3">
+                  <span
+                    className={`rounded-pill border px-3 py-1 font-mono-price text-[10px] uppercase tracking-widest ${
+                      d.isActive
+                        ? "border-accent/50 text-accent"
+                        : "border-border text-muted"
+                    }`}
+                  >
+                    {d.isActive ? "Active" : "Inactive"}
+                  </span>
+                </span>
+                <div className="mt-2 flex gap-4 md:table-cell md:mt-0 md:px-5 md:py-3">
+                  <button
+                    onClick={() => openEdit(d)}
+                    className="font-mono-price text-[11px] uppercase tracking-widest text-accent hover:opacity-70"
+                  >
+                    Edit
+                  </button>
+                  {d.isActive && (
                     <button
-                      onClick={() => openEdit(d)}
-                      className="font-mono-price text-[11px] uppercase tracking-widest text-accent hover:opacity-70"
+                      onClick={() => setConfirmingDeactivate(d.id)}
+                      className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent"
                     >
-                      Edit
+                      Deactivate
                     </button>
-                    {d.isActive && (
-                      <button
-                        onClick={() => setConfirmingDeactivate(d.id)}
-                        className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent"
-                      >
-                        Deactivate
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
+                  )}
+                </div>
+              </div>
             ))}
             {discounts.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-5 py-6 text-center text-sm text-muted"
-                >
-                  No discount codes yet.
-                </td>
-              </tr>
+              <div className="px-5 py-6 text-center text-sm text-muted md:table-row">
+                <span className="md:table-cell md:py-6">No discount codes yet.</span>
+              </div>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-soft border border-border bg-background p-6">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-soft border border-border bg-background p-5 sm:p-6">
             <h3 className="font-display text-xl italic text-foreground">
               {editing ? "Edit discount" : "New discount"}
             </h3>
@@ -225,7 +244,7 @@ export default function DiscountsPanel({
                 disabled={!!editing}
                 className="w-full rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted disabled:opacity-50"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <select
                   value={form.type}
                   onChange={(e) =>
@@ -253,7 +272,7 @@ export default function DiscountsPanel({
                   className="rounded-sharp border border-border bg-transparent px-3 py-2 text-sm text-foreground"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
                     Valid from
@@ -281,7 +300,7 @@ export default function DiscountsPanel({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
                     Min order amount (optional)
@@ -323,7 +342,7 @@ export default function DiscountsPanel({
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   type="number"
                   placeholder="Usage limit (global)"

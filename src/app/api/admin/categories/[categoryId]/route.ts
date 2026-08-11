@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import {
-  createCategory,
-  getCategories,
+  deactivateCategory,
+  updateCategory,
   type CategoryInput,
 } from "@/lib/admin-api";
 
@@ -19,25 +19,34 @@ async function requireAdmin() {
   return { accessToken };
 }
 
-// GET /categories is public on the backend, but this route still lives
-// under /admin/* — the admin UI is the only caller today, and gating
-// it behind an admin session here is harmless.
-export async function GET() {
+export async function PATCH(
+  request: Request,
+  { params }: { params: { categoryId: string } }
+) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
-  const categories = await getCategories();
-  return NextResponse.json(categories);
-}
-
-export async function POST(request: Request) {
-  const auth = await requireAdmin();
-  if ("error" in auth) return auth.error;
-  const body = (await request.json()) as CategoryInput;
+  const body = (await request.json()) as Partial<CategoryInput>;
   try {
-    const category = await createCategory(body, auth.accessToken);
+    const category = await updateCategory(params.categoryId, body, auth.accessToken);
     return NextResponse.json(category);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to create category.";
+    const message = err instanceof Error ? err.message : "Failed to update category.";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+}
+
+// Soft-disable, not a hard delete — see deactivateCategory in admin-api.ts.
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { categoryId: string } }
+) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return auth.error;
+  try {
+    await deactivateCategory(params.categoryId, auth.accessToken);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to deactivate category.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

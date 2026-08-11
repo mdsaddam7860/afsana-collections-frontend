@@ -24,15 +24,15 @@ import OrderConfirmed from "@/components/checkout/OrderConfirmed";
 import type { OrderAddress } from "@/types";
 
 // Maps Stripe's PaymentElement theme to this app's CSS custom properties
-// so the embedded iframe fields match the rest of the Nocturne form —
+// so the embedded iframe fields match the rest of the Linen form —
 // Stripe fields can't take Tailwind classes directly.
 const STRIPE_APPEARANCE: StripeElementsOptions["appearance"] = {
-  theme: "night",
+  theme: "stripe",
   variables: {
     colorPrimary: "#E0793C",
-    colorBackground: "#211820",
-    colorText: "#F2E9E4",
-    colorTextSecondary: "#A8A0A5",
+    colorBackground: "#F8F3EC",
+    colorText: "#2E2620",
+    colorTextSecondary: "#78706A",
     colorDanger: "#E0793C",
     fontFamily: "Archivo, sans-serif",
     borderRadius: "6px",
@@ -43,10 +43,10 @@ const STRIPE_APPEARANCE: StripeElementsOptions["appearance"] = {
       textTransform: "uppercase",
       fontSize: "11px",
       letterSpacing: "0.1em",
-      color: "#A8A0A5",
+      color: "#78706A",
     },
     ".Input": {
-      border: "1px solid #382C36",
+      border: "1px solid #E5D9C6",
       boxShadow: "none",
     },
     ".Input:focus": {

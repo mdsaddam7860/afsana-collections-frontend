@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { getInventory, getAllOrders } from "@/lib/admin-api";
+import { getAdminProducts, getAllOrders } from "@/lib/admin-api";
 import { authOptions } from "@/lib/auth";
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -20,14 +20,15 @@ export default async function AdminOverviewPage() {
   const accessToken =
     (session as unknown as { accessToken?: string })?.accessToken ?? "";
   const [products, orders] = await Promise.all([
-    getInventory(),
+    getAdminProducts(accessToken),
     getAllOrders(accessToken),
   ]);
 
-  const lowStock = products.flatMap((p) =>
+  const activeProducts = products.filter((p) => p.status === "ACTIVE");
+  const lowStock = activeProducts.flatMap((p) =>
     p.variants.filter((v) => v.stockQuantity > 0 && v.stockQuantity <= 5)
   ).length;
-  const outOfStock = products.flatMap((p) =>
+  const outOfStock = activeProducts.flatMap((p) =>
     p.variants.filter((v) => v.stockQuantity === 0)
   ).length;
 
@@ -51,12 +52,12 @@ export default async function AdminOverviewPage() {
         Overview
       </h1>
       <p className="mt-2 text-sm text-muted">
-        {orders.length} total orders across all customers. Product and stock
-        counts reflect ACTIVE products only — see Inventory below.
+        {orders.length} total orders across all customers, {products.length}{" "}
+        products total (drafts and archived included) — see Inventory below.
       </p>
 
       <div className="mt-8 grid grid-cols-2 gap-5 lg:grid-cols-4">
-        <StatCard label="Products" value={String(products.length)} />
+        <StatCard label="Active products" value={String(activeProducts.length)} />
         <StatCard label="Low stock" value={String(lowStock)} />
         <StatCard label="Out of stock" value={String(outOfStock)} />
         <StatCard label="Pending orders" value={String(pendingOrders)} />

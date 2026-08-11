@@ -48,8 +48,18 @@ export const metadata: Metadata = {
   description: SEO.description,
   manifest: "/manifest.json",
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    // Next.js emits these as <link rel="..."> tags in <head>. favicon.ico
+    // is the classic browser-tab/bookmark fallback every browser still
+    // checks for by convention; icon.svg is preferred by browsers that
+    // support it (crisp at any size, follows the same "AC" monogram);
+    // apple-touch-icon is what iOS uses for home-screen/bookmark icons.
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
@@ -75,7 +85,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#211820",
+  themeColor: "#F8F3EC",
 };
 
 export default function RootLayout({
