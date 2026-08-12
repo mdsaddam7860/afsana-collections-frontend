@@ -382,17 +382,50 @@ export async function deactivateCategory(
 // Admin order listing — separate from the customer-scoped GET /orders,
 // this returns every order across all customers. `status` filters
 // server-side to one OrderStatus value (e.g. "PROCESSING") — omit for
-// every status.
+// every status. `codPendingCollection` maps to
+// GET /admin/orders?codPendingCollection=true — every COD order that's
+// been delivered-or-not but hasn't had its cash collected yet (i.e.
+// paidAt is still null); this and `status` are mutually exclusive in
+// the UI (see OrderStatusFilter) since the backend filter is one or
+// the other, not both combined.
 export async function getAllOrders(
   accessToken: string,
-  status?: string
+  options: { status?: string; codPendingCollection?: boolean } = {}
 ): Promise<Order[]> {
   const params = new URLSearchParams({ page: "1", pageSize: "20" });
-  if (status) params.set("status", status);
+  if (options.codPendingCollection) {
+    params.set("codPendingCollection", "true");
+  } else if (options.status) {
+    params.set("status", options.status);
+  }
   const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
     accessToken,
   });
   return unwrapList<Order>(raw);
+}
+
+// There's no documented GET /admin/orders/:id single-order endpoint —
+// only the list. Try it directly first (a lot of REST backends support
+// this even when it isn't called out separately), and fall back to
+// pulling a large page of the list and finding the match client-side
+// if that 404s, so the order detail page still works either way.
+export async function getOrderById(
+  orderId: string,
+  accessToken: string
+): Promise<Order | null> {
+  try {
+    const raw = await apiFetch<unknown>(`/admin/orders/${orderId}`, {
+      accessToken,
+    });
+    return unwrapObject<Order>(raw);
+  } catch {
+    const params = new URLSearchParams({ page: "1", pageSize: "200" });
+    const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
+      accessToken,
+    });
+    const orders = unwrapList<Order>(raw);
+    return orders.find((o) => o.id === orderId) ?? null;
+  }
 }
 
 export async function updateOrderStatus(

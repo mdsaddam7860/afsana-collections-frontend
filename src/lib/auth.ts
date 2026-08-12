@@ -4,43 +4,23 @@ import GoogleProvider from "next-auth/providers/google";
 import { loginWithCredentials } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/config";
 
-// Helper function to call your Express backend's refresh endpoint
-// async function refreshAccessToken(token: any) {
-//   try {
-//     // Replace with your actual backend API URL
-//     const baseUrl = API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// Must match the backend's real token lifetimes exactly, or the refresh
+// cycle drifts out of sync with it:
+//   - accessToken: 25 minutes (was hardcoded to 15 in three places below,
+//     which caused the frontend to consider a still-valid 25-minute token
+//     "expired" 10 minutes early and refresh far more often than needed).
+//   - refreshToken: 7 days — see session.maxAge below, which previously
+//     had no explicit value and fell back to NextAuth's own default of
+//     30 days. That mismatch let the outer NextAuth session cookie stay
+//     "valid" for up to ~23 days after the backend's refresh token had
+//     actually expired, during which every request kept trying (and
+//     failing) to refresh with a dead refresh token instead of the user
+//     ever being cleanly signed out and sent back to login.
+const ACCESS_TOKEN_LIFETIME_MS = 25 * 60 * 1000;
+const REFRESH_TOKEN_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
 
-//     const response = await fetch(`${baseUrl}/auth/refresh`, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ refreshToken: token.refreshToken }),
-//     });
-
-//     const refreshedTokens = await response.json();
-
-//     if (!response.ok) {
-//       throw refreshedTokens;
-//     }
-
-//     return {
-//       ...token,
-//       accessToken: refreshedTokens.accessToken,
-//       accessTokenExpires: Date.now() + 15 * 60 * 1000, // Reset to 15 minutes from now
-//       // Fall back to old refresh token if the backend doesn't return a new one
-//       refreshToken: refreshedTokens.refreshToken ?? token.refreshToken,
-//     };
-//   } catch (error) {
-//     console.error("Error refreshing access token", error);
-//     return {
-//       ...token,
-//       error: "RefreshAccessTokenError", // We will use this in the frontend to force a logout
-//     };
-//   }
-// }
 async function refreshAccessToken(token: any) {
   try {
-    console.log("Attempting to refresh token...");
-
     // Double check that API_BASE_URL includes '/api' if your backend requires it
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
@@ -54,7 +34,7 @@ async function refreshAccessToken(token: any) {
 
     try {
       refreshedTokens = JSON.parse(textResponse);
-    } catch (parseError) {
+    } catch {
       console.error("❌ Backend did not return JSON. Raw response:", textResponse);
       throw new Error("Invalid response from refresh endpoint");
     }
@@ -67,8 +47,13 @@ async function refreshAccessToken(token: any) {
     return {
       ...token,
       accessToken: refreshedTokens.accessToken,
-      accessTokenExpires: Date.now() + 15 * 60 * 1000,
+      accessTokenExpires: Date.now() + ACCESS_TOKEN_LIFETIME_MS,
       refreshToken: refreshedTokens.refreshToken ?? token.refreshToken,
+      // Clear any previous error now that refresh succeeded — otherwise
+      // a stale "RefreshAccessTokenError" from an earlier failed attempt
+      // could linger on the token and keep tripping the sign-out watcher
+      // (see AuthSessionWatcher) even after a subsequent refresh worked.
+      error: undefined,
     };
   } catch (error) {
     console.error("❌ Refresh logic failed:", error);
@@ -78,6 +63,7 @@ async function refreshAccessToken(token: any) {
     };
   }
 }
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -109,7 +95,10 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: { strategy: "jwt" },
+  // maxAge caps the outer NextAuth session/cookie at the same 7 days the
+  // backend's refresh token actually lives for — see the comment above
+  // ACCESS_TOKEN_LIFETIME_MS for why this matters.
+  session: { strategy: "jwt", maxAge: REFRESH_TOKEN_LIFETIME_SECONDS },
   callbacks: {
     jwt: async ({ token, user }) => {
       // 1. Initial sign in
@@ -124,9 +113,8 @@ export const authOptions: NextAuthOptions = {
         token.id = u.id;
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
-
-        // Add expiration time (15 minutes from now)
-        token.accessTokenExpires = Date.now() + 15 * 60 * 1000;
+        token.accessTokenExpires = Date.now() + ACCESS_TOKEN_LIFETIME_MS;
+        token.error = undefined;
 
         return token;
       }

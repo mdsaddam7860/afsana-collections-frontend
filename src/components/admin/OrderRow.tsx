@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Order } from "@/types";
 import { formatPrice } from "@/lib/currency";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -96,7 +97,38 @@ export default function OrderRow({ order }: { order: Order }) {
   return (
     <div className="px-4 py-3 md:table-row md:border-b md:border-border md:px-0 md:py-0 md:align-top md:last:border-0">
       <Field label="Order">
-        <span className="font-mono-price text-xs text-foreground">#{order.id}</span>
+        <Link
+          href={`/admin/orders/${order.id}`}
+          className="font-mono-price text-xs text-accent hover:opacity-70"
+        >
+          #{order.id}
+        </Link>
+      </Field>
+      <Field label="Payment">
+        <div className="flex flex-col items-end gap-1 md:items-start">
+          <span
+            className={`inline-block w-fit rounded-pill border px-2.5 py-0.5 font-mono-price text-[10px] uppercase tracking-widest ${
+              order.paymentMethod === "COD"
+                ? "border-accent/50 text-accent"
+                : "border-border text-muted"
+            }`}
+          >
+            {order.paymentMethod}
+          </span>
+          {/* COD is the one method where "paid" isn't decided at
+              checkout — cash changes hands on delivery, so paidAt stays
+              null right up until that happens. See OrderStatusControl:
+              marking a COD order DELIVERED is what stamps paidAt. */}
+          {order.paymentMethod === "COD" && (
+            <span
+              className={`font-mono-price text-[10px] uppercase tracking-widest ${
+                order.paidAt ? "text-muted" : "text-accent"
+              }`}
+            >
+              {order.paidAt ? "Collected" : "Cash pending"}
+            </span>
+          )}
+        </div>
       </Field>
       <Field label="Date">
         <span className="text-sm text-muted">
@@ -127,7 +159,15 @@ export default function OrderRow({ order }: { order: Order }) {
           )}
           {STATUSES.map((s) => (
             <option key={s} value={s} className="bg-surface">
-              {s}
+              {/* For COD, "delivered" and "cash collected" are the same
+                  backend event — the PATCH that sets DELIVERED is also
+                  what stamps paidAt server-side. Labeling it plainly as
+                  just "Delivered" here would make it look like a status
+                  update only, when picking it also confirms the cash
+                  was handed over. */}
+              {s === "DELIVERED" && order.paymentMethod === "COD"
+                ? "DELIVERED (cash collected)"
+                : s}
             </option>
           ))}
         </select>

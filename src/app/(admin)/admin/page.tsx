@@ -19,9 +19,14 @@ export default async function AdminOverviewPage() {
   const session = await getServerSession(authOptions);
   const accessToken =
     (session as unknown as { accessToken?: string })?.accessToken ?? "";
-  const [products, orders] = await Promise.all([
+  const [products, orders, codPending] = await Promise.all([
     getAdminProducts(accessToken),
     getAllOrders(accessToken),
+    // Separate call rather than filtering `orders` client-side — that
+    // list is only the first page (20), which would undercount COD
+    // orders awaiting collection once there's more than a page of
+    // orders. This one asks the backend for the real total instead.
+    getAllOrders(accessToken, { codPendingCollection: true }),
   ]);
 
   const activeProducts = products.filter((p) => p.status === "ACTIVE");
@@ -66,6 +71,21 @@ export default async function AdminOverviewPage() {
         <StatCard label="Cancelled" value={String(cancelledOrders)} />
         <StatCard label="Returns requested" value={String(returnsRequested)} />
       </div>
+
+      {codPending.length > 0 && (
+        <a
+          href="/admin/orders?cod=1"
+          className="mt-5 flex items-center justify-between rounded-soft border border-accent/50 bg-accent/5 px-6 py-4 transition-colors hover:bg-accent/10"
+        >
+          <span className="font-mono-price text-xs uppercase tracking-widest text-foreground">
+            {codPending.length} COD {codPending.length === 1 ? "order" : "orders"}{" "}
+            awaiting cash collection
+          </span>
+          <span className="font-mono-price text-xs uppercase tracking-widest text-accent">
+            View →
+          </span>
+        </a>
+      )}
 
       <p className="mt-6 text-xs text-muted">
         Manage stock in{" "}

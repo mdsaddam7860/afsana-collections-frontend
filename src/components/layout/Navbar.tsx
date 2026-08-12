@@ -15,7 +15,13 @@ const NAV_LINKS = CATEGORIES.map((c) => ({
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  // A session object can still be truthy while it's actually unusable —
+  // e.g. token refresh failed (see lib/auth.ts's RefreshAccessTokenError)
+  // or it just hasn't loaded yet. Checking sessionStatus explicitly
+  // instead of `!!session` is what makes this correctly fall back to
+  // "Sign In" rather than showing a broken "logged in" state.
+  const isSignedIn = sessionStatus === "authenticated" && !(session as unknown as { error?: string })?.error;
   const itemCount = useCartStore(selectItemCount);
   const openCart = useCartStore((s) => s.openCart);
   const [pulse, setPulse] = useState(false);
@@ -85,9 +91,9 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4 text-sm sm:gap-5">
           <Link
-            href={session ? "/account" : "/account/login"}
+            href={isSignedIn ? "/account" : "/account/login"}
             className="flex items-center gap-1.5 text-muted transition-colors hover:text-foreground"
-            aria-label={session ? "Your account" : "Sign in"}
+            aria-label={isSignedIn ? "Your account" : "Sign in"}
           >
             <svg
               width="18"
@@ -104,8 +110,8 @@ export default function Navbar() {
               <circle cx="12" cy="7" r="4" />
             </svg>
             <span className="hidden font-mono-price text-xs uppercase tracking-widest sm:inline">
-              {session
-                ? session.user?.name?.split(" ")[0] || "Account"
+              {isSignedIn
+                ? session?.user?.name?.split(" ")[0] || "Account"
                 : "Sign In"}
             </span>
           </Link>
