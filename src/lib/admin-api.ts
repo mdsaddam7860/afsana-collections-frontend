@@ -288,6 +288,16 @@ export async function confirmMediaUpload(
   return unwrapObject<{ id: string; url: string }>(raw);
 }
 
+export async function deleteMedia(
+  mediaId: string,
+  accessToken: string
+): Promise<void> {
+  await apiFetch<void>(`/admin/media/${mediaId}`, {
+    method: "DELETE",
+    accessToken,
+  });
+}
+
 export async function deleteProduct(
   productId: string,
   accessToken: string
@@ -370,9 +380,18 @@ export async function deactivateCategory(
 }
 
 // Admin order listing — separate from the customer-scoped GET /orders,
-// this returns every order across all customers.
-export async function getAllOrders(accessToken: string): Promise<Order[]> {
-  const raw = await apiFetch<unknown>("/admin/orders?page=1&pageSize=20", { accessToken });
+// this returns every order across all customers. `status` filters
+// server-side to one OrderStatus value (e.g. "PROCESSING") — omit for
+// every status.
+export async function getAllOrders(
+  accessToken: string,
+  status?: string
+): Promise<Order[]> {
+  const params = new URLSearchParams({ page: "1", pageSize: "20" });
+  if (status) params.set("status", status);
+  const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
+    accessToken,
+  });
   return unwrapList<Order>(raw);
 }
 

@@ -84,10 +84,29 @@ export const AUTH_CONTENT = {
 // with CURRENCY_CODE in lib/currency.ts, which controls only display
 // formatting, not what's sent to the backend/Stripe.
 export const CHECKOUT_DEFAULTS = {
-  flatShippingRate: 79, // ₹79 flat shipping
+  flatShippingRate: 79, // ₹79 flat delivery fee — covers courier pickup/last-mile, not held as margin
+  // Flip to `true` to make delivery free for everyone, no code needed.
+  freeShipping: false,
+  // Or leave freeShipping false and set a spend threshold instead —
+  // orders at or above this subtotal ship free automatically. Set to
+  // `null` to disable the threshold and always charge flatShippingRate
+  // (unless freeShipping above is true, which wins regardless of spend).
+  freeShippingThreshold: 999 as number | null,
   taxRate: 0.18, // GST
   currency: "INR",
 };
+
+// Shown in the checkout order summary as plain reassurance copy, not
+// as actual line items — this store genuinely does not charge a
+// platform fee or a packaging fee, unlike some marketplaces that tack
+// these on right before payment. Keep these in sync with reality: if
+// either fee is ever introduced for real, move it into a proper
+// OrderSummary line item instead of leaving it here as a "we don't
+// charge this" note.
+export const FEE_NOTES = [
+  { label: "Platform fee", note: "We are not those guys." },
+  { label: "Packaging fee", note: "Seriously? Nope." },
+];
 
 export const SOCIAL_LINKS = {
   instagram: "https://instagram.com/afsanacollections",

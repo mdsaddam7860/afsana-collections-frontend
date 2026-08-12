@@ -1,4 +1,4 @@
-import type { Address, CreateOrderResult, Discount, Order, OrderAddress, PaymentStatus, Product, Review, User } from "@/types";
+import type { Address, CreateOrderResult, Discount, Order, OrderAddress, PaymentMethod, PaymentStatus, Product, Review, User } from "@/types";
 import { apiFetch } from "@/lib/http";
 
 // Every page/component imports from here, never from a DB client or
@@ -96,16 +96,35 @@ export async function registerUser({
   email,
   password,
   name,
+  phone,
 }: {
   email: string;
   password: string;
   name?: string;
+  phone?: string;
 }): Promise<{ id: string; email: string } | null> {
   const raw = await apiFetch<unknown>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, name: name || undefined }),
+    body: JSON.stringify({
+      email,
+      password,
+      name: name || undefined,
+      phone: phone || undefined,
+    }),
   });
   return unwrapObject<{ id: string; email: string } | null>(raw);
+}
+
+// POST /auth/forgot-password is a documented alias for
+// /auth/password-reset/request — both work identically. Using the
+// forgot-password path here since it's the more discoverable name.
+// Always returns a generic success (no "email not found" leak), same
+// pattern as resend-verification.
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch<void>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 }
 
 export async function verifyRegistrationOtp(
@@ -225,6 +244,12 @@ interface CreateOrderPayload {
   billingAddress: OrderAddress;
   discountCode?: string;
   currency: string;
+  // POST /orders accepts "CARD" | "UPI" | "COD", defaults to "CARD" if
+  // omitted. CARD/UPI both return a real clientSecret for Stripe; COD
+  // returns clientSecret: null (order.service.ts skips PaymentIntent
+  // creation entirely for COD) and starts the order at PROCESSING
+  // instead of PENDING, since there's no payment step to wait on.
+  paymentMethod?: PaymentMethod;
 }
 
 // POST /orders has no items/lines field in its body — it converts

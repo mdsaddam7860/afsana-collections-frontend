@@ -180,6 +180,15 @@ function LoginForm() {
               </label>
             </div>
 
+            <p className="text-right">
+              <Link
+                href="/account/forgot-password"
+                className="font-mono-price text-[11px] uppercase tracking-widest text-muted hover:text-accent"
+              >
+                Forgot password?
+              </Link>
+            </p>
+
             {error && (
               <p role="alert" className="font-mono-price text-xs text-accent">
                 {error}

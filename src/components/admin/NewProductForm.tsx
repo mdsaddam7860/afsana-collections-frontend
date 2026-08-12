@@ -108,6 +108,8 @@ export default function NewProductForm() {
       // Upload each selected image, one at a time, now that the product
       // has a real id: sign -> upload straight to Cloudinary from the
       // browser -> confirm with our backend so it writes a Media row.
+      const uploadedUrls: string[] = [];
+
       for (let i = 0; i < imageFiles.length; i++) {
         setUploadStatus(`Uploading image ${i + 1} of ${imageFiles.length}…`);
         const file = imageFiles[i];
@@ -122,6 +124,22 @@ export default function NewProductForm() {
         }
         const signed = await signRes.json();
 
+        // Client-side size check against the same limit the backend
+        // used when it built the signature — this is enforced here,
+        // NOT by sending max_file_size to Cloudinary (see below).
+        if (file.size > signed.max_file_size) {
+          const limitMb = (signed.max_file_size / (1024 * 1024)).toFixed(1);
+          throw new Error(`"${file.name}" is over the ${limitMb}MB limit.`);
+        }
+
+        // IMPORTANT: only send params that were actually part of the
+        // signed string the backend returned (timestamp, folder,
+        // allowed_formats — see signed.signature). Cloudinary
+        // recomputes the signature from whatever params are present in
+        // THIS request and rejects it if that doesn't match exactly.
+        // max_file_size is a client-side-only limit, never a signed
+        // Cloudinary param — appending it here is what was causing
+        // "Invalid Signature" for every upload.
         const cloudForm = new FormData();
         cloudForm.append("file", file);
         cloudForm.append("timestamp", String(signed.timestamp));
@@ -129,7 +147,6 @@ export default function NewProductForm() {
         cloudForm.append("api_key", signed.apiKey);
         cloudForm.append("folder", signed.folder);
         cloudForm.append("allowed_formats", signed.allowed_formats);
-        cloudForm.append("max_file_size", String(signed.max_file_size));
 
         const cloudRes = await fetch(signed.uploadUrl, {
           method: "POST",
@@ -154,6 +171,26 @@ export default function NewProductForm() {
         });
         if (!confirmRes.ok) {
           throw new Error(`"${file.name}" uploaded but couldn't be confirmed.`);
+        }
+        const media = await confirmRes.json();
+        uploadedUrls.push(media.url);
+      }
+
+      // Confirming a Media row doesn't make the photo show up anywhere
+      // by itself — the product's own `images` array (what the
+      // storefront actually reads from) still needs to be pushed via
+      // PATCH /admin/products/:id once every upload has landed.
+      if (uploadedUrls.length > 0) {
+        setUploadStatus("Attaching images to product…");
+        const patchRes = await fetch(`/api/admin/products/${product.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ images: uploadedUrls }),
+        });
+        if (!patchRes.ok) {
+          throw new Error(
+            "Images uploaded, but couldn't attach them to the product."
+          );
         }
       }
 

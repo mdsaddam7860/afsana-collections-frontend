@@ -4,13 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { createOrder, createPaymentIntent, getCurrentUser } from "@/lib/api";
 import { syncCartToBackend } from "@/lib/cart-api";
 import { CHECKOUT_DEFAULTS } from "@/lib/constants";
-import type { CartLine, OrderAddress } from "@/types";
+import type { CartLine, OrderAddress, PaymentMethod } from "@/types";
 
 interface CheckoutRequestBody {
   items: CartLine[];
   shippingAddress: OrderAddress;
   billingAddress: OrderAddress;
   discountCode?: string;
+  paymentMethod?: PaymentMethod;
 }
 
 // POST /orders now validates shippingAddress/billingAddress strictly —
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { items, shippingAddress, billingAddress, discountCode } =
+  const { items, shippingAddress, billingAddress, discountCode, paymentMethod } =
     (await request.json()) as CheckoutRequestBody;
 
   if (!items?.length) {
@@ -68,12 +69,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    // The backend itself does NOT reject order creation for an
-    // unverified email — POST /orders has no such check (see
-    // order.routes.ts / order.service.ts). Enforcing it only here is
-    // a soft, client-side-reachable gate: someone could still call the
-    // backend directly and bypass it. Flagged to the backend team to
-    // add the same check server-side for real enforcement.
+    // POST /orders itself now enforces this server-side (403 for an
+    // unverified email) — this client-side check just surfaces the
+    // same error earlier/friendlier, without a round trip to /orders
+    // first. Kept rather than removed since it saves a request.
     const currentUser = await getCurrentUser(accessToken);
     if (currentUser && !currentUser.emailVerified) {
       return NextResponse.json(
@@ -90,22 +89,34 @@ export async function POST(request: Request) {
         billingAddress: pickOrderAddress(billingAddress ?? shippingAddress),
         discountCode: discountCode || undefined,
         currency: CHECKOUT_DEFAULTS.currency,
+        paymentMethod: paymentMethod ?? "CARD",
       },
       accessToken
     );
 
-    // POST /orders already creates the Stripe PaymentIntent inline and
-    // returns its clientSecret directly — /payments/create-intent is
-    // only a retry path for the rare case that inline creation failed
-    // (clientSecret comes back null). Calling it unconditionally was
-    // the actual bug: order.id doesn't exist on this response (the
-    // real field is order.orderId), so `orderId: order.id` silently
-    // serialized to `orderId: undefined`, which JSON.stringify drops
-    // entirely — the backend then saw a request with no orderId at all.
-    const clientSecret =
-      order.clientSecret ?? (await createPaymentIntent(order.orderId, accessToken)).clientSecret;
+    // COD orders never get a PaymentIntent — order.service.ts skips
+    // Stripe entirely for COD, and clientSecret comes back null on
+    // purpose (not a failure to retry). Only CARD/UPI fall through to
+    // the retry-via-create-intent path below.
+    let clientSecret = order.clientSecret;
+    if (!clientSecret && paymentMethod !== "COD") {
+      // POST /orders already creates the Stripe PaymentIntent inline and
+      // returns its clientSecret directly — /payments/create-intent is
+      // only a retry path for the rare case that inline creation failed.
+      clientSecret = (await createPaymentIntent(order.orderId, accessToken)).clientSecret;
+    }
 
-    return NextResponse.json({ clientSecret, orderId: order.orderId });
+    return NextResponse.json({
+      clientSecret,
+      orderId: order.orderId,
+      paymentMethod: paymentMethod ?? "CARD",
+      // The order's own authoritative total, straight from the backend
+      // that created it — not the client-side OrderSummary estimate.
+      // Shown right before the Stripe step so any mismatch between
+      // what the customer expected and what's about to be charged is
+      // visible rather than silent.
+      totalAmount: order.totalAmount,
+    });
   } catch (err) {
     // apiFetch throws a plain Error with the backend's status/body baked
     // into the message — surface that rather than a generic 500 so

@@ -13,6 +13,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ export default function SignupPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, phone: phone || undefined, password }),
     }).catch(() => null);
 
     if (!res || !res.ok) {
@@ -124,6 +125,14 @@ export default function SignupPage() {
               onChange={setEmail}
             />
             <FloatingField
+              id="phone"
+              label="Phone (optional)"
+              type="tel"
+              value={phone}
+              onChange={setPhone}
+              required={false}
+            />
+            <FloatingField
               id="password"
               label="Password"
               type="password"
@@ -173,19 +182,21 @@ function FloatingField({
   type,
   value,
   onChange,
+  required = true,
 }: {
   id: string;
   label: string;
   type: string;
   value: string;
   onChange: (v: string) => void;
+  required?: boolean;
 }) {
   return (
     <div className="group relative">
       <input
         id={id}
         type={type}
-        required
+        required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder=" "

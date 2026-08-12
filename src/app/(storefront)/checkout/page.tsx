@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Elements } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { formatPrice } from "@/lib/currency";
 import { useCartStore } from "@/store/cart-store";
 import StepIndicator, {
   type CheckoutStep,
@@ -21,7 +22,7 @@ import { EMPTY_ORDER_ADDRESS } from "@/components/checkout/AddressFields";
 import PaymentStep from "@/components/checkout/PaymentStep";
 import { toast } from "@/store/toast-store";
 import OrderConfirmed from "@/components/checkout/OrderConfirmed";
-import type { OrderAddress } from "@/types";
+import type { OrderAddress, PaymentMethod } from "@/types";
 
 // Maps Stripe's PaymentElement theme to this app's CSS custom properties
 // so the embedded iframe fields match the rest of the Linen form —
@@ -76,11 +77,13 @@ export default function CheckoutPage() {
   const [billing, setBilling] = useState<OrderAddress>({
     ...EMPTY_ORDER_ADDRESS,
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CARD");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
+  const [orderTotal, setOrderTotal] = useState<number | null>(null);
 
   // POST /orders (and everything downstream) is scoped to the
   // authenticated user's own cart/session on the backend — there's no
@@ -120,12 +123,26 @@ export default function CheckoutPage() {
           items,
           shippingAddress: shipping,
           billingAddress: billingSameAsShipping ? shipping : billing,
+          paymentMethod,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed.");
-      setClientSecret(data.clientSecret);
       setOrderNumber(data.orderId);
+      setOrderTotal(typeof data.totalAmount === "number" ? data.totalAmount : null);
+
+      // COD never gets a clientSecret (order.service.ts skips Stripe
+      // entirely for it) — there's no payment step to show, so go
+      // straight to confirmation instead of stalling on "Preparing
+      // payment…" waiting for a clientSecret that will never arrive.
+      if (paymentMethod === "COD") {
+        clearCart();
+        setConfirmed(true);
+        toast.success("Order placed!");
+        return;
+      }
+
+      setClientSecret(data.clientSecret);
       setStep(2);
     } catch (err) {
       const message =
@@ -190,6 +207,47 @@ export default function CheckoutPage() {
                 onBack={() => setStep(0)}
                 loading={creatingOrder}
               />
+
+              <fieldset className="mt-8 border-t border-border pt-6">
+                <legend className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
+                  Payment method
+                </legend>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      { value: "CARD", label: "Card" },
+                      { value: "UPI", label: "UPI" },
+                      { value: "COD", label: "Cash on delivery" },
+                    ] as const
+                  ).map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-center gap-2 rounded-sharp border px-4 py-3 text-sm transition-colors ${
+                        paymentMethod === option.value
+                          ? "border-accent text-foreground"
+                          : "border-border text-muted hover:border-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={option.value}
+                        checked={paymentMethod === option.value}
+                        onChange={() => setPaymentMethod(option.value)}
+                        className="accent-[#E0793C]"
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+                {paymentMethod === "COD" && (
+                  <p className="mt-3 text-xs text-muted">
+                    Pay in cash when your order arrives. You can still cancel
+                    while it&apos;s being prepared.
+                  </p>
+                )}
+              </fieldset>
+
               {checkoutError && (
                 <p
                   role="alert"
@@ -203,19 +261,29 @@ export default function CheckoutPage() {
 
           {step === 2 &&
             (clientSecret ? (
-              <Elements
-                stripe={stripePromise}
-                options={{ clientSecret, appearance: STRIPE_APPEARANCE }}
-              >
-                <PaymentStep
-                  onBack={() => setStep(1)}
-                  onSuccess={() => {
-                    clearCart();
-                    setConfirmed(true);
-                    toast.success("Order placed!");
-                  }}
-                />
-              </Elements>
+              <div>
+                <div className="mb-6 flex items-center justify-between rounded-soft border border-dashed border-border bg-surface px-4 py-3">
+                  <span className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
+                    Amount to be charged
+                  </span>
+                  <span className="font-mono-price text-sm text-foreground">
+                    {orderTotal !== null ? formatPrice(orderTotal) : "—"}
+                  </span>
+                </div>
+                <Elements
+                  stripe={stripePromise}
+                  options={{ clientSecret, appearance: STRIPE_APPEARANCE }}
+                >
+                  <PaymentStep
+                    onBack={() => setStep(1)}
+                    onSuccess={() => {
+                      clearCart();
+                      setConfirmed(true);
+                      toast.success("Order placed!");
+                    }}
+                  />
+                </Elements>
+              </div>
             ) : (
               <p className="font-mono-price text-xs uppercase tracking-widest text-muted">
                 Preparing payment…

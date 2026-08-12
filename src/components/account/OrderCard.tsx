@@ -7,13 +7,18 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "@/store/toast-store";
 
 // Status labels — backend uses uppercase values (see OrderStatus in
-// src/types/index.ts): PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED.
+// src/types/index.ts): PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED/
+// RETURNED/REFUNDED. COD orders skip PENDING entirely and start at
+// PROCESSING (no payment step to wait on) — CANCELLABLE below already
+// covers that since PROCESSING is in the list for every payment method.
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pending",
   PROCESSING: "Processing",
   SHIPPED: "Shipped",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
+  RETURNED: "Returned",
+  REFUNDED: "Refunded",
 };
 
 const RETURN_LABEL: Record<string, string> = {
@@ -22,9 +27,6 @@ const RETURN_LABEL: Record<string, string> = {
   REJECTED: "Rejected",
 };
 
-// Conservative guess at which statuses still allow cancelling/returning —
-// confirm against your backend's actual rules; it will reject the call
-// server-side either way if a status is ineligible.
 const CANCELLABLE = ["PENDING", "PROCESSING"];
 const RETURNABLE = ["DELIVERED", "SHIPPED"];
 

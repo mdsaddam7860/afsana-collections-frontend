@@ -113,11 +113,23 @@ export interface OrderAddress {
 // PATCH /admin/orders/:id/status only accepts these three values —
 // cancel and return go through their own dedicated endpoints
 // (POST /orders/:id/cancel, POST /orders/:id/return) and are never set
-// via this status field directly. "PENDING" still appears as the
-// initial status straight out of order creation, before any admin
-// action — kept in the type since it's a real value the backend can
-// return, just not one the admin dropdown should offer as a target.
-export type OrderStatus = "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+// via this status field directly. The full set below is every value
+// the backend can actually report on an order (not just the ones the
+// admin dropdown should offer as a PATCH target): PENDING is the
+// initial state right out of order creation (COD orders skip it and
+// start at PROCESSING instead — see paymentMethod below); RETURNED and
+// REFUNDED are terminal states reached only via the return-approval
+// flow, never directly settable here.
+export type OrderStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "RETURNED"
+  | "REFUNDED";
+
+export type PaymentMethod = "CARD" | "UPI" | "COD";
 
 // NOTE: the Postman collection's [Admin] Update Order Status example
 // body uses "SHIPPED" (uppercase) — see OrderStatus above for the
@@ -168,6 +180,7 @@ export interface Order {
   id: string;
   userId: string;
   status: string;
+  paymentMethod: PaymentMethod;
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
