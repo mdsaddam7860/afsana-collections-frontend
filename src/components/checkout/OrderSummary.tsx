@@ -30,14 +30,6 @@ export default function OrderSummary() {
   const shipping = getShipping(subtotal);
   const total = subtotal + tax + shipping;
 
-  const amountToFreeShipping =
-    !CHECKOUT_DEFAULTS.freeShipping &&
-    CHECKOUT_DEFAULTS.freeShippingThreshold !== null &&
-    subtotal > 0 &&
-    subtotal < CHECKOUT_DEFAULTS.freeShippingThreshold
-      ? CHECKOUT_DEFAULTS.freeShippingThreshold - subtotal
-      : 0;
-
   return (
     <div className="rounded-soft border border-dashed border-border bg-surface p-6 font-mono-price">
       <p className="text-[11px] uppercase tracking-widest text-muted">
@@ -79,29 +71,42 @@ export default function OrderSummary() {
             </button>
           </span>
           <span className="text-foreground">
-            {shipping === 0 ? "Free" : formatPrice(shipping)}
+            {CHECKOUT_DEFAULTS.freeShipping && CHECKOUT_DEFAULTS.flatShippingRate > 0 ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-muted line-through">
+                  {formatPrice(CHECKOUT_DEFAULTS.flatShippingRate)}
+                </span>
+                <span className="text-accent">Free</span>
+              </span>
+            ) : shipping === 0 ? (
+              "Free"
+            ) : (
+              formatPrice(shipping)
+            )}
           </span>
         </div>
         {showShippingInfo && (
           <p className="border-l-2 border-border pl-3 text-[11px] normal-case leading-relaxed text-muted">
-            This covers what the courier actually charges us to pick up
+            This normally covers what the courier charges us to pick up
             and deliver your order — we don&apos;t mark it up. It&apos;s
-            waived automatically
-            {CHECKOUT_DEFAULTS.freeShippingThreshold !== null
-              ? ` on orders of ${formatPrice(CHECKOUT_DEFAULTS.freeShippingThreshold)} or more`
-              : ""}
-            .
-          </p>
-        )}
-        {amountToFreeShipping > 0 && (
-          <p className="text-[11px] normal-case text-accent">
-            Add {formatPrice(amountToFreeShipping)} more for free delivery.
+            waived for every order right now as a limited-time thing.
           </p>
         )}
 
         <div className="flex justify-between">
-          <span>Tax (est.)</span>
-          <span className="text-foreground">{formatPrice(tax)}</span>
+          <span>Tax</span>
+          <span className="text-foreground">
+            {CHECKOUT_DEFAULTS.taxRate === 0 && CHECKOUT_DEFAULTS.originalTaxRate > 0 ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-muted line-through">
+                  {formatPrice(subtotal * CHECKOUT_DEFAULTS.originalTaxRate)}
+                </span>
+                <span className="text-accent">Free</span>
+              </span>
+            ) : (
+              formatPrice(tax)
+            )}
+          </span>
         </div>
       </div>
 

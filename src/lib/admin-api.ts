@@ -409,6 +409,15 @@ export async function getAllOrders(
 // this even when it isn't called out separately), and fall back to
 // pulling a large page of the list and finding the match client-side
 // if that 404s, so the order detail page still works either way.
+//
+// Both calls are wrapped separately: if the accessToken is stale (an
+// expired/failed-refresh session — see lib/auth.ts), the FIRST call
+// 401s and gets caught here as expected, but the fallback call was
+// previously left unguarded and used that same stale token, so it
+// 401'd too — and since that second failure wasn't caught anywhere,
+// it crashed the whole Server Component render, which is what
+// surfaced as the generic "This admin screen hit a snag" error
+// boundary instead of a clear, specific message.
 export async function getOrderById(
   orderId: string,
   accessToken: string
@@ -418,13 +427,26 @@ export async function getOrderById(
       accessToken,
     });
     return unwrapObject<Order>(raw);
-  } catch {
-    const params = new URLSearchParams({ page: "1", pageSize: "200" });
-    const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
-      accessToken,
-    });
-    const orders = unwrapList<Order>(raw);
-    return orders.find((o) => o.id === orderId) ?? null;
+  } catch (firstErr) {
+    try {
+      const params = new URLSearchParams({ page: "1", pageSize: "200" });
+      const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
+        accessToken,
+      });
+      const orders = unwrapList<Order>(raw);
+      return orders.find((o) => o.id === orderId) ?? null;
+    } catch (fallbackErr) {
+      console.error(
+        "getOrderById: both the direct lookup and the list fallback failed.",
+        { orderId, firstErr, fallbackErr }
+      );
+      // Surfaces as this page's own "couldn't load this order" state
+      // (see admin/orders/[orderId]/page.tsx) rather than an unhandled
+      // exception reaching the route's error boundary.
+      throw new Error(
+        "Couldn't load this order — the backend rejected both lookup attempts. This usually means the session's access token is stale; try refreshing the page."
+      );
+    }
   }
 }
 

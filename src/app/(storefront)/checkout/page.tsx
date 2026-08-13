@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Elements } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe";
-import { formatPrice } from "@/lib/currency";
+import { formatOrderAmount } from "@/lib/currency";
+import { CHECKOUT_DEFAULTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cart-store";
 import StepIndicator, {
   type CheckoutStep,
@@ -262,13 +263,38 @@ export default function CheckoutPage() {
           {step === 2 &&
             (clientSecret ? (
               <div>
-                <div className="mb-6 flex items-center justify-between rounded-soft border border-dashed border-border bg-surface px-4 py-3">
-                  <span className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
-                    Amount to be charged
-                  </span>
-                  <span className="font-mono-price text-sm text-foreground">
-                    {orderTotal !== null ? formatPrice(orderTotal) : "—"}
-                  </span>
+                <div className="mb-6 rounded-soft border border-dashed border-border bg-surface px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono-price text-[10px] uppercase tracking-widest text-muted">
+                      Amount to be charged
+                    </span>
+                    <span className="font-mono-price text-sm text-foreground">
+                      {/* order.totalAmount comes back from the backend in
+                          paise, not rupees — see formatOrderAmount's doc
+                          comment in lib/currency.ts. Using formatPrice()
+                          directly here was the exact bug that showed
+                          "₹8,250" for an ₹82.50 order. */}
+                      {orderTotal !== null ? formatOrderAmount(orderTotal) : "—"}
+                    </span>
+                  </div>
+                  {/* Deliberately NOT overridden to match the waived
+                      ₹0 delivery/tax shown in OrderSummary above.
+                      CHECKOUT_DEFAULTS.freeShipping/taxRate=0 only
+                      change this FRONTEND's own estimate — the actual
+                      order total still comes entirely from the
+                      backend's own calculation. If this number still
+                      includes delivery/tax, the backend needs the same
+                      waiver applied on its side for the promo to be
+                      real; showing a fake lower number here while
+                      still charging the real one would be worse than
+                      the mismatch itself. */}
+                  {CHECKOUT_DEFAULTS.freeShipping && CHECKOUT_DEFAULTS.taxRate === 0 && (
+                    <p className="mt-2 text-[10px] normal-case text-muted">
+                      If this still includes delivery/tax, the backend
+                      hasn&apos;t applied the waiver yet — this number is
+                      always what actually gets charged.
+                    </p>
+                  )}
                 </div>
                 <Elements
                   stripe={stripePromise}

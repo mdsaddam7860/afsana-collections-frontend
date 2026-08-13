@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Order } from "@/types";
-import { formatPrice } from "@/lib/currency";
+import { formatOrderAmount } from "@/lib/currency";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "@/store/toast-store";
 
@@ -142,7 +142,7 @@ export default function OrderRow({ order }: { order: Order }) {
       </Field>
       <Field label="Total">
         <span className="font-mono-price text-sm text-foreground">
-          {formatPrice(order.totalAmount)}
+          {formatOrderAmount(order.totalAmount)}
         </span>
       </Field>
       <Field label="Status">

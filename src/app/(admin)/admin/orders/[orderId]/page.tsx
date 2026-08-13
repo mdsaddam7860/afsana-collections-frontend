@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { getOrderById } from "@/lib/admin-api";
 import { authOptions } from "@/lib/auth";
-import { formatPrice } from "@/lib/currency";
+import { formatOrderAmount } from "@/lib/currency";
 import ShippingAddressCard from "@/components/admin/ShippingAddressCard";
 import OrderStatusControl from "@/components/admin/OrderStatusControl";
 
@@ -74,7 +74,7 @@ export default async function AdminOrderDetailPage({
                   </p>
                 </div>
                 <span className="font-mono-price text-foreground">
-                  {formatPrice(item.totalPrice)}
+                  {formatOrderAmount(item.totalPrice)}
                 </span>
               </div>
             ))}
@@ -82,27 +82,27 @@ export default async function AdminOrderDetailPage({
           <div className="space-y-1.5 border-t border-border px-5 py-4 font-mono-price text-xs text-muted">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="text-foreground">{formatPrice(order.subtotal)}</span>
+              <span className="text-foreground">{formatOrderAmount(order.subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>Delivery fee</span>
               <span className="text-foreground">
-                {order.shippingAmount === 0 ? "Free" : formatPrice(order.shippingAmount)}
+                {order.shippingAmount === 0 ? "Free" : formatOrderAmount(order.shippingAmount)}
               </span>
             </div>
             <div className="flex justify-between">
               <span>Tax</span>
-              <span className="text-foreground">{formatPrice(order.taxAmount)}</span>
+              <span className="text-foreground">{formatOrderAmount(order.taxAmount)}</span>
             </div>
             {order.discountAmount > 0 && (
               <div className="flex justify-between">
                 <span>Discount</span>
-                <span className="text-accent">-{formatPrice(order.discountAmount)}</span>
+                <span className="text-accent">-{formatOrderAmount(order.discountAmount)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-1.5 text-sm text-foreground">
               <span>Total</span>
-              <span>{formatPrice(order.totalAmount)}</span>
+              <span>{formatOrderAmount(order.totalAmount)}</span>
             </div>
           </div>
         </div>

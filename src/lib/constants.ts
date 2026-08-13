@@ -84,15 +84,15 @@ export const AUTH_CONTENT = {
 // with CURRENCY_CODE in lib/currency.ts, which controls only display
 // formatting, not what's sent to the backend/Stripe.
 export const CHECKOUT_DEFAULTS = {
-  flatShippingRate: 79, // ₹79 flat delivery fee — covers courier pickup/last-mile, not held as margin
-  // Flip to `true` to make delivery free for everyone, no code needed.
-  freeShipping: false,
-  // Or leave freeShipping false and set a spend threshold instead —
-  // orders at or above this subtotal ship free automatically. Set to
-  // `null` to disable the threshold and always charge flatShippingRate
-  // (unless freeShipping above is true, which wins regardless of spend).
-  freeShippingThreshold: 999 as number | null,
-  taxRate: 0.18, // GST
+  // ORIGINAL/reference rates — kept even while waived so the "was ₹79"
+  // strikethrough below has something real to show. If the waiver ever
+  // ends, flip freeShipping back to false and taxRate back to
+  // ORIGINAL_TAX_RATE to restore real charging.
+  flatShippingRate: 79,
+  freeShipping: true, // waived for now — was false
+  freeShippingThreshold: 999,
+  taxRate: 0, // waived for now — was ORIGINAL_TAX_RATE (0.18)
+  originalTaxRate: 0.18,
   currency: "INR",
 };
 

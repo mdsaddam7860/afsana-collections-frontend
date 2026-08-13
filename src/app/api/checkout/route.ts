@@ -88,7 +88,7 @@ export async function POST(request: Request) {
         shippingAddress: pickOrderAddress(shippingAddress),
         billingAddress: pickOrderAddress(billingAddress ?? shippingAddress),
         discountCode: discountCode || undefined,
-        currency: CHECKOUT_DEFAULTS.currency,
+        // currency: CHECKOUT_DEFAULTS.currency,
         paymentMethod: paymentMethod ?? "CARD",
       },
       accessToken

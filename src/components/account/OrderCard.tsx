@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Order } from "@/types";
-import { formatPrice } from "@/lib/currency";
+import { formatOrderAmount } from "@/lib/currency";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "@/store/toast-store";
 
@@ -120,7 +120,7 @@ export default function OrderCard({
               <span className="text-muted">× {item.quantity}</span>
             </span>
             <span className="font-mono-price text-xs text-muted">
-              {formatPrice(item.totalPrice)}
+              {formatOrderAmount(item.totalPrice)}
             </span>
           </li>
         ))}
@@ -129,31 +129,31 @@ export default function OrderCard({
       <div className="mt-4 space-y-1.5 border-t border-border pt-4 font-mono-price text-xs text-muted">
         <div className="flex justify-between">
           <span className="uppercase tracking-widest">Subtotal</span>
-          <span>{formatPrice(order.subtotal)}</span>
+          <span>{formatOrderAmount(order.subtotal)}</span>
         </div>
         {order.shippingAmount > 0 && (
           <div className="flex justify-between">
             <span className="uppercase tracking-widest">Shipping</span>
-            <span>{formatPrice(order.shippingAmount)}</span>
+            <span>{formatOrderAmount(order.shippingAmount)}</span>
           </div>
         )}
         {order.taxAmount > 0 && (
           <div className="flex justify-between">
             <span className="uppercase tracking-widest">Tax</span>
-            <span>{formatPrice(order.taxAmount)}</span>
+            <span>{formatOrderAmount(order.taxAmount)}</span>
           </div>
         )}
         {order.discountAmount > 0 && (
           <div className="flex justify-between text-accent">
             <span className="uppercase tracking-widest">Discount</span>
-            <span>−{formatPrice(order.discountAmount)}</span>
+            <span>−{formatOrderAmount(order.discountAmount)}</span>
           </div>
         )}
         <div className="flex justify-between pt-1.5 text-sm text-foreground">
           <span className="font-mono-price uppercase tracking-widest">
             Total
           </span>
-          <span>{formatPrice(order.totalAmount)}</span>
+          <span>{formatOrderAmount(order.totalAmount)}</span>
         </div>
       </div>
 
