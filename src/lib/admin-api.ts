@@ -404,50 +404,38 @@ export async function getAllOrders(
   return unwrapList<Order>(raw);
 }
 
-// There's no documented GET /admin/orders/:id single-order endpoint —
-// only the list. Try it directly first (a lot of REST backends support
-// this even when it isn't called out separately), and fall back to
-// pulling a large page of the list and finding the match client-side
-// if that 404s, so the order detail page still works either way.
+// Confirmed against the real order.routes.ts: there is NO GET
+// /admin/orders/:id single-order endpoint — only GET /orders/:id
+// (customer-scoped, filtered to req.user!.id, useless for admin) and
+// GET /admin/orders (list only). So this doesn't try a single-order
+// route at all anymore — it goes straight to paging through the list
+// and matching by id, which is the only way to reach this data.
 //
-// Both calls are wrapped separately: if the accessToken is stale (an
-// expired/failed-refresh session — see lib/auth.ts), the FIRST call
-// 401s and gets caught here as expected, but the fallback call was
-// previously left unguarded and used that same stale token, so it
-// 401'd too — and since that second failure wasn't caught anywhere,
-// it crashed the whole Server Component render, which is what
-// surfaced as the generic "This admin screen hit a snag" error
-// boundary instead of a clear, specific message.
+// pageSize is capped at 100 server-side (adminOrderListQuerySchema:
+// z.coerce.number().int().min(1).max(100)) — requesting 200 previously
+// got rejected by that .strict() schema with a 400, which is what was
+// actually surfacing as "the backend rejected both lookup attempts"
+// (a real bug, but not the access-token one that error message
+// guessed at). Paginates in bounded 100-item pages instead.
+const ORDER_LOOKUP_MAX_PAGES = 10; // up to 1,000 orders scanned
+
 export async function getOrderById(
   orderId: string,
   accessToken: string
 ): Promise<Order | null> {
-  try {
-    const raw = await apiFetch<unknown>(`/admin/orders/${orderId}`, {
+  for (let page = 1; page <= ORDER_LOOKUP_MAX_PAGES; page++) {
+    const params = new URLSearchParams({ page: String(page), pageSize: "100" });
+    const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
       accessToken,
     });
-    return unwrapObject<Order>(raw);
-  } catch (firstErr) {
-    try {
-      const params = new URLSearchParams({ page: "1", pageSize: "200" });
-      const raw = await apiFetch<unknown>(`/admin/orders?${params.toString()}`, {
-        accessToken,
-      });
-      const orders = unwrapList<Order>(raw);
-      return orders.find((o) => o.id === orderId) ?? null;
-    } catch (fallbackErr) {
-      console.error(
-        "getOrderById: both the direct lookup and the list fallback failed.",
-        { orderId, firstErr, fallbackErr }
-      );
-      // Surfaces as this page's own "couldn't load this order" state
-      // (see admin/orders/[orderId]/page.tsx) rather than an unhandled
-      // exception reaching the route's error boundary.
-      throw new Error(
-        "Couldn't load this order — the backend rejected both lookup attempts. This usually means the session's access token is stale; try refreshing the page."
-      );
-    }
+    const orders = unwrapList<Order>(raw);
+    const match = orders.find((o) => o.id === orderId);
+    if (match) return match;
+    // Fewer than a full page came back -> that was the last page, no
+    // point requesting page+1.
+    if (orders.length < 100) break;
   }
+  return null;
 }
 
 export async function updateOrderStatus(

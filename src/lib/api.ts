@@ -127,6 +127,23 @@ export async function requestPasswordReset(email: string): Promise<void> {
   });
 }
 
+// ASSUMPTION — not confirmed against the actual backend the way the
+// other endpoints in this file are: paired with
+// /auth/password-reset/request by naming convention, since no confirm
+// endpoint was documented anywhere alongside it. If the reset-password
+// page 400s with something like "Unrecognized key" or a 404, the real
+// path/body shape needs to be swapped in here (and in the
+// /api/auth/reset-password route that calls this).
+export async function confirmPasswordReset(
+  token: string,
+  password: string
+): Promise<void> {
+  await apiFetch<void>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function verifyRegistrationOtp(
   email: string,
   otp: string
@@ -243,8 +260,18 @@ interface CreateOrderPayload {
   shippingAddress: OrderAddress;
   billingAddress: OrderAddress;
   discountCode?: string;
-  currency: string;
-  // POST /orders accepts "CARD" | "UPI" | "COD", defaults to "CARD" if
+  // NOTE: no `currency` field — POST /orders's Zod schema is .strict()
+  // and rejects any key it doesn't explicitly define, and `currency`
+  // isn't one of them (confirmed via a live 400: "Unrecognized key(s)
+  // in object: 'currency'"). The backend derives currency on its own
+  // (CHECKOUT_DEFAULTS.currency in constants.ts is only used for
+  // display/local formatting on this end, never sent to this endpoint).
+  // Sending it at all failed EVERY order creation with a 400 — which is
+  // exactly why "payment failed but the order still got created" was
+  // happening: see createOrder's callers for the dangling-order fix
+  // that goes with this.
+  //
+  // paymentMethod: "CARD" | "UPI" | "COD", defaults to "CARD" if
   // omitted. CARD/UPI both return a real clientSecret for Stripe; COD
   // returns clientSecret: null (order.service.ts skips PaymentIntent
   // creation entirely for COD) and starts the order at PROCESSING

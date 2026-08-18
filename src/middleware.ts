@@ -33,15 +33,19 @@ export default withAuth(
       // checkout doesn't require auth since guest checkout is allowed.
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
-        // /account/login, /account/signup, and /account/forgot-password
-        // must stay excluded — these ARE the pages an unauthenticated
-        // visitor needs to reach, so requiring auth on them would
-        // create a redirect loop (login page requires being logged in
-        // to view the login page).
+        // /account/login, /account/signup, /account/forgot-password, and
+        // /account/reset-password must stay excluded — these ARE the
+        // pages an unauthenticated visitor needs to reach, so requiring
+        // auth on them would create a redirect loop (login page requires
+        // being logged in to view the login page). reset-password in
+        // particular is reached from an emailed link clicked by someone
+        // who, by definition, isn't signed in.
         const isAuthPage =
           path === "/account/login" ||
           path === "/account/signup" ||
-          path === "/account/forgot-password";
+          path === "/account/forgot-password" ||
+          path === "/account/reset-password" ||
+          path === "/account/verify-otp";
         if ((path.startsWith("/admin") || path.startsWith("/account")) && !isAuthPage) {
           // A token with `error: "RefreshAccessTokenError"` (see
           // lib/auth.ts) means its refresh token is dead — expired,

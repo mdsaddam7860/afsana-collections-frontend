@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createOrder, createPaymentIntent, getCurrentUser } from "@/lib/api";
 import { syncCartToBackend } from "@/lib/cart-api";
-import { CHECKOUT_DEFAULTS } from "@/lib/constants";
 import type { CartLine, OrderAddress, PaymentMethod } from "@/types";
 
 interface CheckoutRequestBody {
@@ -88,7 +87,9 @@ export async function POST(request: Request) {
         shippingAddress: pickOrderAddress(shippingAddress),
         billingAddress: pickOrderAddress(billingAddress ?? shippingAddress),
         discountCode: discountCode || undefined,
-        // currency: CHECKOUT_DEFAULTS.currency,
+        // No `currency` field — see CreateOrderPayload's comment in
+        // lib/api.ts. This WAS being sent and WAS the cause of every
+        // order creation 400ing with "Unrecognized key(s): 'currency'".
         paymentMethod: paymentMethod ?? "CARD",
       },
       accessToken

@@ -36,20 +36,14 @@ export default function SignupPage() {
       return;
     }
 
-    const signInRes = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
     setLoading(false);
-    if (signInRes?.error) {
-      toast.success("Account created — sign in to continue.");
-      router.push("/account/login");
-      return;
-    }
-    toast.success("Account created. Verify your email to place orders.");
-    router.push("/account");
+
+    // The account isn't verified yet — signing in immediately here
+    // would just fail (and previously did, silently bouncing to the
+    // login page with no way to actually enter the OTP anywhere, since
+    // that page never existed). Send them to verify first instead.
+    toast.success("Account created — check your email for a verification code.");
+    router.push(`/account/verify-otp?email=${encodeURIComponent(email)}`);
   };
 
   return (
