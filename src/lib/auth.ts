@@ -6,20 +6,49 @@ import { API_BASE_URL } from "@/lib/config";
 
 // Must match the backend's real token lifetimes exactly, or the refresh
 // cycle drifts out of sync with it:
-//   - accessToken: 25 minutes (was hardcoded to 15 in three places below,
-//     which caused the frontend to consider a still-valid 25-minute token
-//     "expired" 10 minutes early and refresh far more often than needed).
-//   - refreshToken: 7 days — see session.maxAge below, which previously
-//     had no explicit value and fell back to NextAuth's own default of
-//     30 days. That mismatch let the outer NextAuth session cookie stay
-//     "valid" for up to ~23 days after the backend's refresh token had
-//     actually expired, during which every request kept trying (and
-//     failing) to refresh with a dead refresh token instead of the user
-//     ever being cleanly signed out and sent back to login.
-const ACCESS_TOKEN_LIFETIME_MS = 25 * 60 * 1000;
+//   - accessToken: 5 minutes (was 25 — backend's actual value keeps
+//     changing as the backend team tunes it; this constant is the only
+//     place that needs updating when it does).
+//   - refreshToken: 7 days — see session.maxAge below, kept in sync so
+//     the outer NextAuth session cookie doesn't outlive the backend
+//     refresh token it wraps.
+const ACCESS_TOKEN_LIFETIME_MS = 5 * 60 * 1000;
 const REFRESH_TOKEN_LIFETIME_SECONDS = 7 * 24 * 60 * 60;
 
+// Single-flight guard: with only a 5-minute accessToken lifetime,
+// checkout alone can fire several near-simultaneous server-side calls
+// (syncCartToBackend, getCurrentUser, createOrder, createPaymentIntent
+// all happen in one /api/checkout request) — if the token happens to
+// be expired right as that request comes in, NextAuth's jwt() callback
+// can genuinely be invoked multiple times in close succession (this
+// route plus a concurrent middleware/RSC request reading the session).
+// Without this guard, each of those calls independently POSTs to
+// /auth/refresh with the SAME refreshToken; if the backend rotates
+// refresh tokens (issues a new one and invalidates the old on use —
+// standard, secure behavior), the first call's response invalidates
+// that refreshToken, and every other concurrent call using the
+// now-stale value fails with a real "invalid refresh token" error even
+// though the session is fine — which is exactly what "expired
+// mid-checkout and didn't refresh" looks like from the outside.
+// Keying by the refreshToken string means concurrent calls for the
+// same session share one in-flight request instead of racing.
+const inFlightRefreshes = new Map<string, Promise<any>>();
+
 async function refreshAccessToken(token: any) {
+  const key = token.refreshToken as string;
+  const existing = inFlightRefreshes.get(key);
+  if (existing) return existing;
+
+  const promise = doRefresh(token);
+  inFlightRefreshes.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightRefreshes.delete(key);
+  }
+}
+
+async function doRefresh(token: any) {
   try {
     // Double check that API_BASE_URL includes '/api' if your backend requires it
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {

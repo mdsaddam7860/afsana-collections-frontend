@@ -75,7 +75,7 @@ export default async function AdminOverviewPage() {
       {codPending.length > 0 && (
         <a
           href="/admin/orders?cod=1"
-          className="mt-5 flex items-center justify-between rounded-soft border border-accent/50 bg-accent/5 px-6 py-4 transition-colors hover:bg-accent/10"
+          className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-soft border border-accent/50 bg-accent/5 px-4 py-4 transition-colors hover:bg-accent/10 sm:px-6"
         >
           <span className="font-mono-price text-xs uppercase tracking-widest text-foreground">
             {codPending.length} COD {codPending.length === 1 ? "order" : "orders"}{" "}
